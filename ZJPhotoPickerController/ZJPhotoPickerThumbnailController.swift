@@ -46,11 +46,8 @@ class ZJPhotoPickerThumbnailController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        doneButton.isEnabled = self.selectedAssetsPointer.pointee.count > 0
-        doneButton.setTitle("完成(\(selectedAssetsPointer.pointee.count))", for: .normal)
-        previewButton.isEnabled = selectedAssetsPointer.pointee.count > 0
         originalSizeCheck.isSelected = isOriginalPointer.pointee
-        refreshOriginalSizeCheckbox()
+        refreshBottomBar()
     }
     
     deinit {
@@ -108,8 +105,8 @@ extension ZJPhotoPickerThumbnailController {
         
         originalSizeCheck = UIButton()
         bottomBar.addSubview(originalSizeCheck)
-        originalSizeCheck.titleLabel?.font = UIFont.systemFont(ofSize: 13)
-        originalSizeCheck.setTitle(" 原图", for: .normal)
+        originalSizeCheck.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        originalSizeCheck.setTitle(" 原图 ", for: .normal)
         originalSizeCheck.setImage(#imageLiteral(resourceName: "NoSelectRoundBtn"), for: .normal)
         originalSizeCheck.setImage(#imageLiteral(resourceName: "SelectRoundBtn"), for: .selected)
         originalSizeCheck.setImage(#imageLiteral(resourceName: "NoSelectRoundBtn"), for: .disabled)
@@ -162,14 +159,18 @@ extension ZJPhotoPickerThumbnailController {
     @objc private func originalSizeChecked() {
         originalSizeCheck.isSelected = !originalSizeCheck.isSelected
         isOriginalPointer.pointee = originalSizeCheck.isSelected
-        refreshOriginalSizeCheckbox()
+        refreshBottomBar()
     }
     
-    fileprivate func refreshOriginalSizeCheckbox() {
-        if self.sumOfImageSizePointer.pointee > 0 && self.originalSizeCheck.isEnabled && self.originalSizeCheck.isSelected {
-            self.originalSizeCheck.setTitle(" 原图 \(self.sumOfImageSizePointer.pointee.bytesSize)", for: .normal)
+    fileprivate func refreshBottomBar() {
+        let count = selectedAssetsPointer.pointee.count
+        doneButton.isEnabled    = count > 0
+        previewButton.isEnabled = count > 0
+        doneButton.setTitle("完成(\(count))", for: .normal)
+        if sumOfImageSizePointer.pointee > 0, originalSizeCheck.isSelected {
+            self.originalSizeCheck.setTitle(" 原图  \(self.sumOfImageSizePointer.pointee.bytesSize)", for: .normal)
         } else {
-            self.originalSizeCheck.setTitle(" 原图", for: .normal)
+            self.originalSizeCheck.setTitle(" 原图 ", for: .normal)
         }
         self.originalSizeCheck.sizeToFit()
         self.originalSizeCheck.center = CGPoint(x: self.view.frame.width/2, y: self.bottomBarHeight/2)
@@ -192,12 +193,13 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
         cell.imageClicked = { [weak self] asset in
             guard let asset = asset, let `self` = self else { return }
             var selectionChanged = false
+            var selectionDeleted = false
             if !asset.isSelected {
                 if self.selectedAssetsPointer.pointee.count < self.maxSelectionAllowed {
                     asset.isSelected = true
-                    weakInstance?.selectButton.isSelected = true
                     if !self.selectedAssetsPointer.pointee.contains(asset) { // 防止重复添加
                         self.selectedAssetsPointer.pointee.append(asset)
+                        asset.selectedOrder = NSNumber(value: self.selectedAssetsPointer.pointee.count)
                         guard let naviVc = self.navigationController as? ZJPhotoPickerController else { return }
                         naviVc.selections = self.selectedAssetsPointer.pointee
                         naviVc.selectionsChanged?(naviVc.selections)
@@ -211,9 +213,16 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                 }
             } else {
                 asset.isSelected = false
-                weakInstance?.selectButton.isSelected = false
-                if let index = self.selectedAssetsPointer.pointee.index(of: asset) {
+                if var index = self.selectedAssetsPointer.pointee.index(of: asset) {
                     self.selectedAssetsPointer.pointee.remove(at: index)
+                    if index < self.selectedAssetsPointer.pointee.count {
+                        selectionDeleted = true
+                        let startIndex = index
+                        for _ in startIndex..<self.selectedAssetsPointer.pointee.count {
+                            self.selectedAssetsPointer.pointee[index].selectedOrder = NSNumber(value: index + 1)
+                            index += 1
+                        }
+                    }
                     guard let naviVc = self.navigationController as? ZJPhotoPickerController else { return }
                     naviVc.selections = self.selectedAssetsPointer.pointee
                     naviVc.selectionsChanged?(naviVc.selections)
@@ -226,17 +235,27 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                     selectionChanged = true
                 }
             }
+            weakInstance?.refreshSelectButton(with: asset)
             
             guard selectionChanged else { return }
-            let count = self.selectedAssetsPointer.pointee.count
-            self.doneButton.isEnabled        = count > 0
-            self.originalSizeCheck.isEnabled = count > 0
-            self.previewButton.isEnabled     = count > 0
-            if count <= 0 {
-                self.originalSizeCheck.isSelected = false
+            self.refreshBottomBar()
+            
+            if selectionDeleted {
+                var relatedCellIndexPathes = [IndexPath]()
+                for asset in self.selectedAssetsPointer.pointee {
+                    if let index = self.assets.index(of: asset) {
+                        let indexPath = IndexPath(item: index, section: 0)
+                        relatedCellIndexPathes.append(indexPath)
+                    }
+                }
+                var index = 0
+                for indexPath in relatedCellIndexPathes {
+                    if let cell = collectionView.cellForItem(at: indexPath) as? ZJPhotoPickerThumbnailCell {
+                        cell.refreshSelectButton(with: self.selectedAssetsPointer.pointee[index], animated: false)
+                    }
+                    index += 1
+                }
             }
-            self.doneButton.setTitle("完成(\(count))", for: .normal)
-            self.refreshOriginalSizeCheckbox()
         }
         return cell
     }
@@ -259,11 +278,7 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
             ZJPhotoPickerHelper.image(for: asset, size: imageSize) { (image, _) in
                 self.imageButton.setImage(image, for: .normal)
             }
-            selectButton.isSelected = asset.isSelected
-            if asset.isSelected {
-                selectButton.layer.add(selectionAnimation, forKey: "")
-            }
-            
+            refreshSelectButton(with: asset)
         }
     }
     
@@ -276,21 +291,29 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         imageButton.addTarget(self, action: #selector(imageButtonClicked), for: .touchUpInside)
         
         addSubview(selectButton)
-        selectButton.setImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
-        selectButton.setImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
+        selectButton.titleLabel?.font = UIFont.systemFont(ofSize: 11)
+        selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
+        selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
         selectButton.isUserInteractionEnabled = false
         selectButton.sizeToFit()
     }
     
-    @objc private func imageButtonClicked() {
-        imageClicked?(asset)
-        if selectButton.isSelected {
-            selectButton.layer.add(selectionAnimation, forKey: "")
-        }
-    }
-    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    func refreshSelectButton(with asset: PHAsset, animated: Bool = true) {
+        selectButton.isSelected = asset.isSelected
+        if asset.selectedOrder.intValue > 0 {
+            selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_order"), for: .selected)
+            selectButton.setTitle("\(asset.selectedOrder.intValue)", for: .selected)
+        } else {
+            selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
+            selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
+        }
+        if asset.isSelected, animated {
+            selectButton.layer.add(selectionAnimation, forKey: "")
+        }
     }
     
     override func layoutSubviews() {
@@ -298,6 +321,10 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         imageButton.frame = bounds
         let padding: CGFloat = 2
         selectButton.frame = CGRect(x: frame.width - selectButton.bounds.width - padding, y: padding, width: selectButton.bounds.width, height: selectButton.bounds.height)
+    }
+    
+    @objc private func imageButtonClicked() {
+        imageClicked?(asset)
     }
     
     private var selectionAnimation: CAKeyframeAnimation {
