@@ -26,9 +26,9 @@ class ZJPhotoPickerThumbnailController: UIViewController {
     fileprivate var sumOfImageSizePointer: UnsafeMutablePointer<Int>!
     fileprivate var isOriginalPointer    : UnsafeMutablePointer<Bool>!
     
-    required init(assetsModel: [PHAsset], maxSelectionAllowed: Int = 9, selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>!) {
+    required init(assets: [PHAsset], maxSelectionAllowed: Int = 9, selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>!) {
         super.init(nibName: nil, bundle: nil)
-        assets = assetsModel
+        self.assets                = assets
         self.selectedAssetsPointer = selectedAssetsPointer
         self.sumOfImageSizePointer = sumOfImageSizePointer
         self.isOriginalPointer     = isOriginalPointer
@@ -134,7 +134,7 @@ extension ZJPhotoPickerThumbnailController {
         // 返回到相册列表时, 考虑到用户相册可能有更新, 重新查询所有相册
         let hud = ZJPhotoPickerHUD.show(message: nil, inView: naviVc.view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
         ZJPhotoPickerHelper.queryAlbumList { (albumModels) in
-            hud?.hide()
+            hud?.hide(animated: false)
             naviVc.albumModels = albumModels
         }
     }
@@ -146,8 +146,17 @@ extension ZJPhotoPickerThumbnailController {
     @objc private func doneButtonClicked() {
         guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
         naviVc.selections = selectedAssetsPointer.pointee
-        naviVc.willDismissWhenDoneBtnClicked?(selectedAssetsPointer.pointee)
-        naviVc.dismiss(animated: true, completion: nil)
+        let hud = ZJPhotoPickerHUD.show(message: nil, inView: view, hideAfter: TimeInterval.greatestFiniteMagnitude)
+        let fullScreenSize = UIScreen.main.bounds.width * UIScreen.main.scale
+        var size = CGSize(width: fullScreenSize, height: fullScreenSize)
+        if isOriginalPointer.pointee == true {
+            size = PHImageManagerMaximumSize
+        }
+        ZJPhotoPickerHelper.images(for: naviVc.selections, size: size) { (images) in
+            hud?.hide(animated: false)
+            naviVc.willDismissWhenDoneBtnClicked?(images, naviVc.selections)
+            naviVc.dismiss(animated: true, completion: nil)
+        }
     }
     
     @objc private func originalSizeChecked() {
@@ -235,7 +244,7 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
 
 class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
     static let reuseIdentifier = "ZJPhotoPickerThumbnailCell"
-    fileprivate var imageButton = UIButton()
+    fileprivate var imageButton  = UIButton()
     fileprivate var selectButton = UIButton()
     
     var imageClicked: ((PHAsset?) -> Void)?
@@ -251,7 +260,10 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
                 self.imageButton.setImage(image, for: .normal)
             }
             selectButton.isSelected = asset.isSelected
-            selectButton.layer.add(selectionAnimation, forKey: "")
+            if asset.isSelected {
+                selectButton.layer.add(selectionAnimation, forKey: "")
+            }
+            
         }
     }
     

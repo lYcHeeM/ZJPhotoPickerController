@@ -89,11 +89,15 @@ open class ZJPhotoPickerHUD: UIToolbar {
     
     open func hide(animated: Bool = true) {
         indicator.stopAnimating()
-        UIView.animate(withDuration: 0.25, animations: { 
-            self.alpha = 0
-        }) { (_) in
+        if animated {
+            UIView.animate(withDuration: 0.25, animations: {
+                self.alpha = 0
+            }) { (_) in
+                self.removeFromSuperview()
+                self.alpha = 1
+            }
+        } else {
             self.removeFromSuperview()
-            self.alpha = 1
         }
     }
 }

@@ -40,7 +40,7 @@ extension UIColor {
     public convenience init(withRGBValue rgbValue: Int, alpha: Float = 1.0) {
         let r = ((rgbValue & 0xFF0000) >> 16)
         let g = ((rgbValue & 0x00FF00) >> 8)
-        let b =  (rgbValue & 0x0000FF)
+        let b = (rgbValue & 0x0000FF)
         self.init(R: r,
                   G: g,
                   B: b,

@@ -21,6 +21,7 @@ import Photos
 extension PHAsset {
     private struct AssociatedKeys {
         static var isSelectedKey = 0
+        static var selectedOrderKey = 0
     }
     var isSelected: Bool {
         set {
@@ -30,6 +31,17 @@ extension PHAsset {
                 return value
             } else {
                 return false
+            }
+        }
+    }
+    var selectedOrder: Int {
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.selectedOrderKey, newValue, .OBJC_ASSOCIATION_ASSIGN)
+        } get {
+            if let value = objc_getAssociatedObject(self, &AssociatedKeys.selectedOrderKey) as? Int {
+                return value
+            } else {
+                return 0
             }
         }
     }

@@ -11,6 +11,9 @@ import Photos
 
 class ZJPhotoPickerController: UINavigationController {
 
+    deinit {
+        debugPrint("++ZJPhotoPickerController")
+    }
     var albumModels = [ZJAlbumModel]() {
         didSet {
             albumListController.albumModels = albumModels
@@ -22,7 +25,7 @@ class ZJPhotoPickerController: UINavigationController {
     var selections = [PHAsset]()
     var selectionsChanged            : (([PHAsset]) -> Void)? = nil
     var selectionsFinished           : (([PHAsset]) -> Void)? = nil
-    var willDismissWhenDoneBtnClicked: (([PHAsset]) -> Void)? = nil
+    var willDismissWhenDoneBtnClicked: (([UIImage], [PHAsset]) -> Void)? = nil
     
     var maxSelectionAllowed = 9 {
         didSet {
@@ -35,7 +38,7 @@ class ZJPhotoPickerController: UINavigationController {
         super.init(nibName: nil, bundle: nil)
         self.pushViewController(rootVc, animated: false)
         self.albumListController = rootVc
-        self.albumModels = albumModels
+        self.albumModels         = albumModels
         self.maxSelectionAllowed = maxSelectionAllowed
     }
     
@@ -154,7 +157,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
             thumbnailVc = self.thumbnialControllers[indexPath.row]
             thumbnailVc.assets = assets
         } else {
-            thumbnailVc = ZJPhotoPickerThumbnailController(assetsModel: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets, sumOfImageSizePointer: &self.sumOfImageSize, isOriginalPointer: &isOriginalPointer)
+            thumbnailVc = ZJPhotoPickerThumbnailController(assets: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets, sumOfImageSizePointer: &self.sumOfImageSize, isOriginalPointer: &isOriginalPointer)
             self.thumbnialControllers.append(thumbnailVc)
         }
         hud?.hide(animated: false)

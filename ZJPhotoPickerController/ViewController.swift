@@ -11,9 +11,12 @@ import Photos
 
 class ViewController: UIViewController {
 
-    var pickerVc: ZJPhotoPickerController?
     var collectionView: UICollectionView!
-    var selectedImages = [UIImage]()
+    var selectedImages = [UIImage]() {
+        didSet {
+            self.collectionView.reloadData()
+        }
+    }
     @IBOutlet var separator: UIImageView!
     
     override func viewDidLoad() {
@@ -39,13 +42,8 @@ class ViewController: UIViewController {
 
     @IBAction func showPicker(_ sender: Any) {
         ZJPhotoPickerHelper.presentPhotoPicker(in: self, maxSelectionAllowed: 50, imageQueryFinished: { vc in
-            self.pickerVc = vc
-            self.pickerVc?.willDismissWhenDoneBtnClicked = { models in
-                ZJPhotoPickerHelper.images(for: models, size: CGSize(width: 1024, height: 1024), completion: { (result) in
-                    let images = result
-                    self.selectedImages.append(contentsOf: images)
-                    self.collectionView.reloadData()
-                })
+            vc.willDismissWhenDoneBtnClicked = { images, _ in
+                self.selectedImages.append(contentsOf: images)
             }
         })
     }
