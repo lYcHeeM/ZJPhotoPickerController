@@ -16,6 +16,7 @@
 		B23B97481F39B582007745B8 /* ZJPhotoPickerHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B97441F39B582007745B8 /* ZJPhotoPickerHelper.swift */; };
 		B23B97491F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B97451F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift */; };
 		B23B974B1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B974A1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift */; };
+		B23B974E1F3C090F007745B8 /* UIImageExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B974D1F3C090F007745B8 /* UIImageExtension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		B23B97441F39B582007745B8 /* ZJPhotoPickerHelper.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZJPhotoPickerHelper.swift; sourceTree = "<group>"; };
 		B23B97451F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZJPhotoPickerThumbnailController.swift; sourceTree = "<group>"; };
 		B23B974A1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZJPhotoPickerHUD.swift; sourceTree = "<group>"; };
+		B23B974D1F3C090F007745B8 /* UIImageExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIImageExtension.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -80,6 +82,7 @@
 				B23B97451F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift */,
 				B23B97441F39B582007745B8 /* ZJPhotoPickerHelper.swift */,
 				B23B974A1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift */,
+				B23B974D1F3C090F007745B8 /* UIImageExtension.swift */,
 			);
 			name = PAPhotoPicker;
 			sourceTree = "<group>";
@@ -159,6 +162,7 @@
 			files = (
 				B23B97331F39B56E007745B8 /* ViewController.swift in Sources */,
 				B23B97471F39B582007745B8 /* ZJPhotoPickerController.swift in Sources */,
+				B23B974E1F3C090F007745B8 /* UIImageExtension.swift in Sources */,
 				B23B97481F39B582007745B8 /* ZJPhotoPickerHelper.swift in Sources */,
 				B23B97491F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift in Sources */,
 				B23B97311F39B56E007745B8 /* AppDelegate.swift in Sources */,
@@ -287,6 +291,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = 7G9Q3YE88T;
 				INFOPLIST_FILE = ZJPhotoPickerController/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.rickluo.ZJPhotoPickerController;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -300,6 +305,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = 7G9Q3YE88T;
 				INFOPLIST_FILE = ZJPhotoPickerController/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.rickluo.ZJPhotoPickerController;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -326,6 +332,7 @@
 				B23B97411F39B56E007745B8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

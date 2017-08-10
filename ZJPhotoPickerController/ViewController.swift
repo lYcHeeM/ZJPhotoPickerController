@@ -18,11 +18,6 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        let status = PHPhotoLibrary.authorizationStatus()
-        if status == .restricted || status == .denied {
-            ZJPhotoPickerHUD.show(message: "Saving failed! Can't access your ablum, check in \"Settings\"->\"Privacy\"->\"Photos\".", inView: view, needsIndicator: false, hideAfter: 2.5)
-            return
-        }
         setupUI()
     }
     
@@ -43,7 +38,7 @@ class ViewController: UIViewController {
     }
 
     @IBAction func showPicker(_ sender: Any) {
-        ZJPhotoPickerHelper.presentPhotoPicker(in: self, maxSelectionAllowed: 9, imageQueryFinished: { vc in
+        ZJPhotoPickerHelper.presentPhotoPicker(in: self, maxSelectionAllowed: 50, imageQueryFinished: { vc in
             self.pickerVc = vc
             self.pickerVc?.willDismissWhenDoneBtnClicked = { models in
                 ZJPhotoPickerHelper.images(for: models, size: CGSize(width: 1024, height: 1024), completion: { (result) in

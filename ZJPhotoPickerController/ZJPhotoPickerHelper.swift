@@ -47,7 +47,7 @@ class ZJAlbumModel {
     var firstAsset: PHAsset? {
         didSet {
             guard let firstAsset = firstAsset else { return }
-            ZJPhotoPickerHelper.image(for: firstAsset, synchronous: true, size: CGSize(width: 200, height: 200)) { (image, _) in
+            ZJPhotoPickerHelper.image(for: firstAsset, synchronous: true, size: CGSize(width: 400, height: 400)) { (image, _) in
                 self.cover = image
             }
         }
@@ -58,6 +58,11 @@ class ZJAlbumModel {
 
 class ZJPhotoPickerHelper {    
     class func presentPhotoPicker(in controller: UIViewController, animated: Bool = true, maxSelectionAllowed: Int,  imageQueryFinished: @escaping (ZJPhotoPickerController) -> Swift.Void, completion: (() -> Swift.Void)? = nil) {
+        let status = PHPhotoLibrary.authorizationStatus()
+        if status == .restricted || status == .denied {
+            ZJPhotoPickerHUD.show(message: "Saving failed! Can't access your ablum, check in \"Settings\"->\"Privacy\"->\"Photos\".", inView: controller.view, needsIndicator: false, hideAfter: 2.5)
+            return
+        }
         let hud = ZJPhotoPickerHUD.show(message: "", inView: controller.view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
         queryAlbumList { (albumModels) in
             // end hud
@@ -91,7 +96,7 @@ class ZJPhotoPickerHelper {
         image(for: asset, size: PHImageManagerMaximumSize, resizeMode: .exact, completion: completion)
     }
     
-    class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .fast, contentMode: PHImageContentMode = .aspectFit, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
+    class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .fast, contentMode: PHImageContentMode = .aspectFill, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
         let options = PHImageRequestOptions()
         options.resizeMode = resizeMode
         options.isSynchronous = synchronous
@@ -99,7 +104,23 @@ class ZJPhotoPickerHelper {
         PHCachingImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options, resultHandler: completion)
     }
     
-    class func queryAlbumList(ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = false, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
+    class func imageSize(of assets: [PHAsset], synchronous: Bool, completion: @escaping (Int) -> Void) {
+        let options = PHImageRequestOptions()
+        options.isSynchronous = synchronous
+        var size  = 0
+        var index = 0
+        for asset in assets {
+            PHCachingImageManager.default().requestImageData(for: asset, options: options, resultHandler: { (data, dataUTI, orientation, info) in
+                index += 1
+                size  += data?.count ?? 0
+                if index >= assets.count {
+                    completion(size)
+                }
+            })
+        }
+    }
+    
+    class func queryAlbumList(ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = true, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
         if !allowsImage && !allowsVideo { completion([]) }
         
         let options = PHFetchOptions()
@@ -122,8 +143,9 @@ class ZJPhotoPickerHelper {
             for item in albums {
                 guard let result = item as? PHFetchResult<PHAssetCollection> else { continue }
                 result.enumerateObjects({ (collection, index, _) in
+                    if !collection.isKind(of: PHAssetCollection.self) { return }
                     // 过滤"最新删除"
-                    if collection.assetCollectionSubtype.rawValue >= 212 { return }
+                    if collection.assetCollectionSubtype.rawValue >= 214 { return }
                     
                     let assetResult = PHAsset.fetchAssets(in: collection, options: options)
                     guard assetResult.count > 0 else { return }
@@ -172,4 +194,19 @@ class ZJPhotoPickerHelper {
         return model
     }
 }
+
+extension Int {
+    var bytesSize: String {
+        let mbAmount   = Double(1024 * 1024)
+        let doubleSelf = Double(self)
+        if doubleSelf > 0.1 * mbAmount {
+            return String(format: "%.1fM", doubleSelf/mbAmount)
+        } else if doubleSelf >= 1024 {
+            return String(format: "%.0fK", doubleSelf/1024)
+        } else {
+            return "\(self)B"
+        }
+    }
+}
+
 

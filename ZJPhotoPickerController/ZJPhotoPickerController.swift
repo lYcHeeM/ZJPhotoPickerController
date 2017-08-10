@@ -11,7 +11,12 @@ import Photos
 
 class ZJPhotoPickerController: UINavigationController {
 
-    fileprivate var albumModels = [ZJAlbumModel]()
+    var albumModels = [ZJAlbumModel]() {
+        didSet {
+            albumListController.albumModels = albumModels
+            albumListController.tableView.reloadData()
+        }
+    }
     fileprivate var albumListController: ZJPhotoPickerAlbumListController!
     
     var selections = [PHAsset]()
@@ -42,6 +47,7 @@ class ZJPhotoPickerController: UINavigationController {
         super.viewDidLoad()
         navigationBar.barStyle  = .black
         navigationBar.tintColor = .white
+        interactivePopGestureRecognizer?.delegate = nil
     }
     
     func pushToCameraRollThumbnailController(animated: Bool) {
@@ -60,6 +66,8 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
     fileprivate var maxSelectionAllowed = 9
     fileprivate var thumbnialControllers = [ZJPhotoPickerThumbnailController]()
     fileprivate var selectedAssets = [PHAsset]()
+    fileprivate var sumOfImageSize = 0
+    fileprivate var isOriginalPointer = false
     fileprivate var pushingAnimated: Bool = true
     
     required init(albumModels: [ZJAlbumModel], maxSelectionAllowed: Int) {
@@ -74,6 +82,8 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.tableFooterView = UIView()
+        tableView.layoutMargins = .zero
+        tableView.separatorInset = .zero
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "取消", style: .plain, target: self, action: #selector(dismissNav))
     }
     
@@ -88,7 +98,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         var cell: ZJPhotoPickerAlbumInfoCell! = tableView.dequeueReusableCell(withIdentifier: "cell") as? ZJPhotoPickerAlbumInfoCell
         if cell == nil {
-            cell = ZJPhotoPickerAlbumInfoCell(style: .default, reuseIdentifier: "cell", fixedImageSize: CGSize(width: 80, height: 80))
+            cell = ZJPhotoPickerAlbumInfoCell(style: .default, reuseIdentifier: "cell", fixedImageSize: CGSize(width: 60, height: 60))
             cell.accessoryView = UIImageView(image: #imageLiteral(resourceName: "pa_rightArrow"))
         }
         let album = albumModels[indexPath.row]
@@ -102,7 +112,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 82
+        return 60 + 2*(1/UIScreen.main.scale)
     }
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -144,7 +154,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
             thumbnailVc = self.thumbnialControllers[indexPath.row]
             thumbnailVc.assets = assets
         } else {
-            thumbnailVc = ZJPhotoPickerThumbnailController(assetsModel: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets)
+            thumbnailVc = ZJPhotoPickerThumbnailController(assetsModel: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets, sumOfImageSizePointer: &self.sumOfImageSize, isOriginalPointer: &isOriginalPointer)
             self.thumbnialControllers.append(thumbnailVc)
         }
         hud?.hide(animated: false)
@@ -173,6 +183,9 @@ class ZJPhotoPickerAlbumInfoCell: UITableViewCell {
         imageView.frame.size = fixedImageSize
         imageView.frame.origin.y = (frame.height - imageView.frame.height)/2
         textLabel?.frame.origin.x = imageView.frame.maxX + 15
+        if separatorInset.left != imageView.frame.origin.x {
+            separatorInset = UIEdgeInsets(top: 0, left: imageView.frame.origin.x, bottom: 0, right: 0)
+        }
     }
 }
 
