@@ -159,27 +159,27 @@ class ZJPhotoPickerHelper {
     class func queryAlbumList(cameraRollOnly: Bool = false, ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = true, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
         if !allowsImage && !allowsVideo { completion([]) }
         
-        let options = PHFetchOptions()
-        if !allowsImage {
-            options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.video.rawValue)
-        }
-        if !allowsVideo {
-            options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue)
-        }
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: ascending)]
-        
-        let cameraRoll   = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: nil)
-        let smartAlbums  = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
-        let streamAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumMyPhotoStream, options: nil)
-        let userAlbums   = PHAssetCollection.fetchTopLevelUserCollections(with: nil)
-        let sharedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil)
-        var albums = [smartAlbums, streamAlbums, userAlbums, sharedAlbums]
-        if cameraRollOnly {
-            albums = [cameraRoll]
-        }
-        
-        var albumModels = [ZJAlbumModel]()
         DispatchQueue.global().async {
+            let options = PHFetchOptions()
+            if !allowsImage {
+                options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.video.rawValue)
+            }
+            if !allowsVideo {
+                options.predicate = NSPredicate(format: "mediaType == %d", PHAssetMediaType.image.rawValue)
+            }
+            options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: ascending)]
+            
+            let cameraRoll   = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: nil)
+            let smartAlbums  = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
+            let streamAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumMyPhotoStream, options: nil)
+            let userAlbums   = PHAssetCollection.fetchTopLevelUserCollections(with: nil)
+            let sharedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil)
+            var albums = [smartAlbums, streamAlbums, userAlbums, sharedAlbums]
+            if cameraRollOnly {
+                albums = [cameraRoll]
+            }
+            
+            var albumModels = [ZJAlbumModel]()
             for item in albums {
                 guard let result = item as? PHFetchResult<PHAssetCollection> else { continue }
                 result.enumerateObjects({ (collection, index, _) in

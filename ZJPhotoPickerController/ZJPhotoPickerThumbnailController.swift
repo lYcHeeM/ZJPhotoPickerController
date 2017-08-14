@@ -198,7 +198,7 @@ extension ZJPhotoPickerThumbnailController {
         previewButton.isEnabled = count > 0
         doneButton.setTitle("完成(\(count))", for: .normal)
         if sumOfImageSizePointer.pointee > 0, originalSizeCheck.isSelected {
-            self.originalSizeCheck.setTitle(" 原图  \(self.sumOfImageSizePointer.pointee.bytesSize)", for: .normal)
+            self.originalSizeCheck.setTitle(" 原图 \(self.sumOfImageSizePointer.pointee.bytesSize)", for: .normal)
         } else {
             self.originalSizeCheck.setTitle(" 原图 ", for: .normal)
         }
@@ -372,7 +372,7 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         super.layoutSubviews()
         imageButton.frame = bounds
         let padding: CGFloat = 3
-        let buttonSize: CGFloat = 21
+        let buttonSize: CGFloat = 20
         selectButton.frame = CGRect(x: frame.width - buttonSize - padding, y: frame.height - buttonSize - padding, width: buttonSize, height: buttonSize)
     }
     
@@ -398,10 +398,9 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
 }
 
 class PAPohtoPickerSelectButton: UIButton {
-    
-    /// 扩大2倍点击区域
+    /// 扩大点击区域
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
-        let coefficient: CGFloat = 3
+        let coefficient: CGFloat = 2
         let enlargedBounds = CGRect(x: -bounds.width * (coefficient - 1), y: -bounds.height * (coefficient - 1), width: bounds.width * coefficient, height: bounds.height * coefficient)
         return enlargedBounds.contains(point)
     }
