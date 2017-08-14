@@ -61,6 +61,19 @@ class ZJPhotoPickerThumbnailController: UIViewController {
         setupUI()
     }
     
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
+        if isMovingFromParentViewController {
+            // 返回到相册列表时, 考虑到用户相册可能有更新, 重新查询所有相册
+            let hud = ZJPhotoPickerHUD.show(message: nil, inView: naviVc.view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
+            ZJPhotoPickerHelper.queryAlbumList { (albumModels) in
+                hud?.hide(animated: false)
+                naviVc.albumModels = albumModels
+            }
+        }
+    }
+    
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         originalSizeCheck.isSelected = isOriginalPointer.pointee
