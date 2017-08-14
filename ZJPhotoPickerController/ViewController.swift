@@ -41,11 +41,19 @@ class ViewController: UIViewController {
     }
 
     @IBAction func showPicker(_ sender: Any) {
-        ZJPhotoPickerHelper.presentPhotoPicker(in: self, maxSelectionAllowed: 50, imageQueryFinished: { vc in
-            vc.willDismissWhenDoneBtnClicked = { images, _ in
+        // Suggested method, better performance
+        let pickerVc = ZJPhotoPickerController(maxSelectionAllowed: 9)
+        pickerVc.presented(from: self, animated: true, completion: nil) { (_) in
+            pickerVc.willDismissWhenDoneBtnClicked = { images, _ in
                 self.selectedImages.append(contentsOf: images)
             }
-        })
+        }
+        
+//        ZJPhotoPickerHelper.presentPhotoPicker(in: self, maxSelectionAllowed: 50, imageQueryFinished: { vc in
+//            vc.willDismissWhenDoneBtnClicked = { images, _ in
+//                self.selectedImages.append(contentsOf: images)
+//            }
+//        })
     }
 }
 

@@ -33,7 +33,7 @@ class ZJPhotoPickerController: UINavigationController {
         }
     }
     
-    required init(albumModels: [ZJAlbumModel], maxSelectionAllowed: Int = 9) {
+    required init(albumModels: [ZJAlbumModel] = [], maxSelectionAllowed: Int = 9) {
         let rootVc = ZJPhotoPickerAlbumListController(albumModels: albumModels, maxSelectionAllowed: maxSelectionAllowed)
         super.init(nibName: nil, bundle: nil)
         self.pushViewController(rootVc, animated: false)
@@ -62,20 +62,38 @@ class ZJPhotoPickerController: UINavigationController {
         albumListController.pushingAnimated = animated
         albumListController.tableView(albumListController.tableView, didSelectRowAt: IndexPath(row: cameraRollIndex, section: 0))
     }
+    
+    func presented(from controller: UIViewController, animated: Bool, completion: (() -> Void)?, imageQueryFinished: @escaping ([ZJAlbumModel]) -> Void) {
+        let status = PHPhotoLibrary.authorizationStatus()
+        if status == .restricted || status == .denied {
+            ZJPhotoPickerHUD.show(message: "Saving failed! Can't access your ablum, check in \"Settings\"->\"Privacy\"->\"Photos\".", inView: controller.view, needsIndicator: false, hideAfter: 2.5)
+            return
+        }
+        controller.present(self, animated: animated, completion: completion)
+        let hud = ZJPhotoPickerHUD.show(message: "", inView: view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
+        ZJPhotoPickerHelper.queryAlbumList(cameraRollOnly: true) { (albumModels) in
+            hud?.hide(animated: false)
+            imageQueryFinished(albumModels)
+            self.albumModels = albumModels
+            self.pushToCameraRollThumbnailController(animated: false)
+        }
+    }
 }
 
 class ZJPhotoPickerAlbumListController: UITableViewController {
     fileprivate var albumModels = [ZJAlbumModel]()
-    fileprivate var maxSelectionAllowed = 9
-    fileprivate var thumbnialControllers = [ZJPhotoPickerThumbnailController]()
-    fileprivate var selectedAssets = [PHAsset]()
-    fileprivate var sumOfImageSize = 0
-    fileprivate var isOriginalPointer = false
+    fileprivate var maxSelectionAllowed   = 9
+    fileprivate var thumbnialControllers  = [ZJPhotoPickerThumbnailController]()
+    fileprivate var selectedAssets        = [PHAsset]()
+    fileprivate var sumOfImageSize        = 0
+    fileprivate var isOriginal            = false
+    fileprivate var isSelectionsFull      = false
     fileprivate var pushingAnimated: Bool = true
     
     required init(albumModels: [ZJAlbumModel], maxSelectionAllowed: Int) {
         super.init(style: .plain)
         self.albumModels = albumModels
+        self.maxSelectionAllowed = maxSelectionAllowed
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -122,7 +140,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         let hud = ZJPhotoPickerHUD.show(message: "", inView: view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
         let assets = self.albumModels[indexPath.row].assets
         
-        if assets.count >= 1000 {
+        if assets.count >= 2000 {
             DispatchQueue.global().async {
                 self.sameAssetsManipulation(assets)
                 DispatchQueue.main.async {
@@ -146,6 +164,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
             for selection in self.selectedAssets {
                 if asset.isSame(to: selection) {
                     asset.isSelected = true
+                    asset.selectedOrder = selection.selectedOrder
                 }
             }
         }
@@ -156,8 +175,9 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         if self.thumbnialControllers.count > indexPath.row {
             thumbnailVc = self.thumbnialControllers[indexPath.row]
             thumbnailVc.assets = assets
+            thumbnailVc.isSelectionFull = isSelectionsFull
         } else {
-            thumbnailVc = ZJPhotoPickerThumbnailController(assets: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets, sumOfImageSizePointer: &self.sumOfImageSize, isOriginalPointer: &isOriginalPointer)
+            thumbnailVc = ZJPhotoPickerThumbnailController(assets: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets, sumOfImageSizePointer: &self.sumOfImageSize, isOriginalPointer: &isOriginal, isSelectionsFullPointer: &isSelectionsFull)
             self.thumbnialControllers.append(thumbnailVc)
         }
         hud?.hide(animated: false)
@@ -171,8 +191,8 @@ class ZJPhotoPickerAlbumInfoCell: UITableViewCell {
     
     required init(style: UITableViewCellStyle, reuseIdentifier: String?, fixedImageSize: CGSize) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-        self.fixedImageSize = fixedImageSize
-        imageView?.contentMode = .scaleAspectFill
+        self.fixedImageSize      = fixedImageSize
+        imageView?.contentMode   = .scaleAspectFill
         imageView?.clipsToBounds = true
     }
     

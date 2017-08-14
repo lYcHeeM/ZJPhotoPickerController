@@ -16,22 +16,39 @@ class ZJPhotoPickerThumbnailController: UIViewController {
             collectionView.reloadData()
         }
     }
+    var isSelectionFull: Bool = false {
+        didSet {
+            for asset in self.assets {
+                if !asset.isSelected {
+                    if asset.canSelect == !isSelectionFull {
+                        return
+                    } else {
+                        asset.canSelect = !isSelectionFull
+                    }
+                }
+            }
+            collectionView.reloadData()
+        }
+    }
+    
     fileprivate var collectionView   : UICollectionView!
     fileprivate let bottomBarHeight  : CGFloat = 44
     fileprivate var doneButton       : UIButton!
     fileprivate var originalSizeCheck: UIButton!
     fileprivate var previewButton    : UIButton!
-    fileprivate var maxSelectionAllowed = 99
-    fileprivate var selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>!
-    fileprivate var sumOfImageSizePointer: UnsafeMutablePointer<Int>!
-    fileprivate var isOriginalPointer    : UnsafeMutablePointer<Bool>!
+    fileprivate var maxSelectionAllowed = 9
+    fileprivate var selectedAssetsPointer  : UnsafeMutablePointer<[PHAsset]>!
+    fileprivate var sumOfImageSizePointer  : UnsafeMutablePointer<Int>!
+    fileprivate var isOriginalPointer      : UnsafeMutablePointer<Bool>!
+    fileprivate var isSelectionsFullPointer: UnsafeMutablePointer<Bool>!
     
-    required init(assets: [PHAsset], maxSelectionAllowed: Int = 9, selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>!) {
+    required init(assets: [PHAsset], maxSelectionAllowed: Int = 9, selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>, isSelectionsFullPointer: UnsafeMutablePointer<Bool>) {
         super.init(nibName: nil, bundle: nil)
-        self.assets                = assets
-        self.selectedAssetsPointer = selectedAssetsPointer
-        self.sumOfImageSizePointer = sumOfImageSizePointer
-        self.isOriginalPointer     = isOriginalPointer
+        self.assets                  = assets
+        self.selectedAssetsPointer   = selectedAssetsPointer
+        self.sumOfImageSizePointer   = sumOfImageSizePointer
+        self.isOriginalPointer       = isOriginalPointer
+        self.isSelectionsFullPointer = isSelectionsFullPointer
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -190,10 +207,11 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ZJPhotoPickerThumbnailCell.reuseIdentifier, for: indexPath) as! ZJPhotoPickerThumbnailCell
         cell.asset = assets[indexPath.item]
         weak var weakInstance = cell
-        cell.imageClicked = { [weak self] asset in
+        cell.selectButtonClicked = { [weak self] asset in
             guard let asset = asset, let `self` = self else { return }
             var selectionChanged = false
-            var selectionDeleted = false
+            var selectionsJustUnFull = false
+            var selectionDeletedAtMiddle = false
             if !asset.isSelected {
                 if self.selectedAssetsPointer.pointee.count < self.maxSelectionAllowed {
                     asset.isSelected = true
@@ -207,16 +225,29 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                             self.sumOfImageSizePointer.pointee += size
                         })
                         selectionChanged = true
+                        if self.selectedAssetsPointer.pointee.count >= self.maxSelectionAllowed {
+                            self.isSelectionsFullPointer.pointee = true
+                            for asset in self.assets {
+                                if !asset.isSelected {
+                                    asset.canSelect = false
+                                }
+                            }
+                            collectionView.reloadData()
+                        } else {
+                            weakInstance?.refreshButton(with: asset, animated: true)
+                        }
                     }
-                } else {
-                    ZJPhotoPickerHUD.show(message: "不得超过\(self.maxSelectionAllowed)张", inView: self.view, animated: true, needsIndicator: false, hideAfter: 1.2)
                 }
             } else {
                 asset.isSelected = false
                 if var index = self.selectedAssetsPointer.pointee.index(of: asset) {
                     self.selectedAssetsPointer.pointee.remove(at: index)
+                    if self.selectedAssetsPointer.pointee.count == self.maxSelectionAllowed - 1 {
+                        selectionsJustUnFull = true
+                        self.isSelectionsFullPointer.pointee = false
+                    }
                     if index < self.selectedAssetsPointer.pointee.count {
-                        selectionDeleted = true
+                        selectionDeletedAtMiddle = true
                         let startIndex = index
                         for _ in startIndex..<self.selectedAssetsPointer.pointee.count {
                             self.selectedAssetsPointer.pointee[index].selectedOrder = NSNumber(value: index + 1)
@@ -232,29 +263,23 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                             self.sumOfImageSizePointer.pointee = 0
                         }
                     })
+                    weakInstance?.refreshButton(with: asset)
                     selectionChanged = true
                 }
             }
-            weakInstance?.refreshSelectButton(with: asset)
             
             guard selectionChanged else { return }
             self.refreshBottomBar()
             
-            if selectionDeleted {
-                var relatedCellIndexPathes = [IndexPath]()
-                for asset in self.selectedAssetsPointer.pointee {
-                    if let index = self.assets.index(of: asset) {
-                        let indexPath = IndexPath(item: index, section: 0)
-                        relatedCellIndexPathes.append(indexPath)
-                    }
+            if selectionDeletedAtMiddle {
+                collectionView.reloadData()
+            }
+            
+            if selectionsJustUnFull {
+                for asset in self.assets {
+                    asset.canSelect = true
                 }
-                var index = 0
-                for indexPath in relatedCellIndexPathes {
-                    if let cell = collectionView.cellForItem(at: indexPath) as? ZJPhotoPickerThumbnailCell {
-                        cell.refreshSelectButton(with: self.selectedAssetsPointer.pointee[index], animated: false)
-                    }
-                    index += 1
-                }
+                collectionView.reloadData()
             }
         }
         return cell
@@ -264,9 +289,9 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
 class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
     static let reuseIdentifier = "ZJPhotoPickerThumbnailCell"
     fileprivate var imageButton  = UIButton()
-    fileprivate var selectButton = UIButton()
+    fileprivate var selectButton = PAPohtoPickerSelectButton()
     
-    var imageClicked: ((PHAsset?) -> Void)?
+    var selectButtonClicked: ((PHAsset?) -> Void)?
     
     var asset: PHAsset? {
         didSet {
@@ -275,10 +300,15 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
             if imageSize.width < 300 {
                 imageSize = CGSize(width: 300, height: 300)
             }
-            ZJPhotoPickerHelper.image(for: asset, size: imageSize) { (image, _) in
-                self.imageButton.setImage(image, for: .normal)
+            if asset.cachedImage == nil {
+                ZJPhotoPickerHelper.image(for: asset, size: imageSize) { (image, _) in
+                    self.imageButton.setImage(image, for: .normal)
+                    asset.cachedImage = image
+                }
+            } else {
+                imageButton.setImage(asset.cachedImage, for: .normal)
             }
-            refreshSelectButton(with: asset)
+            refreshButton(with: asset, animated: false)
         }
     }
     
@@ -288,21 +318,20 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         addSubview(imageButton)
         imageButton.clipsToBounds = true
         imageButton.imageView?.contentMode = .scaleAspectFill
-        imageButton.addTarget(self, action: #selector(imageButtonClicked), for: .touchUpInside)
         
         addSubview(selectButton)
         selectButton.titleLabel?.font = UIFont.systemFont(ofSize: 11)
         selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
         selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
-        selectButton.isUserInteractionEnabled = false
         selectButton.sizeToFit()
+        selectButton.addTarget(self, action: #selector(selectButtonDidClick), for: .touchUpInside)
     }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func refreshSelectButton(with asset: PHAsset, animated: Bool = true) {
+    func refreshButton(with asset: PHAsset, animated: Bool = true) {
         selectButton.isSelected = asset.isSelected
         if asset.selectedOrder.intValue > 0 {
             selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_order"), for: .selected)
@@ -310,6 +339,16 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         } else {
             selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
             selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
+        }
+        // 实践发现给大量button(似乎是15个以上)的enabled置为false, 会有很大的图形性能损耗, 首先从刷新colletionView开始直到对应button的外观变为enabled为false的外观, 大概用了1秒; 其次, 滑动collectionView会有很大的帧率丢失, 从之前的60帧变为35帧左右.
+//        imageButton.isEnabled = asset.canSelect
+        // 故改为控制isUserInteractionEnabled和alpha.
+        if asset.canSelect {
+            imageButton.isUserInteractionEnabled = true
+            imageButton.alpha = 1
+        } else {
+            imageButton.isUserInteractionEnabled = false
+            imageButton.alpha = 0.5
         }
         if asset.isSelected, animated {
             selectButton.layer.add(selectionAnimation, forKey: "")
@@ -319,12 +358,13 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
         imageButton.frame = bounds
-        let padding: CGFloat = 2
-        selectButton.frame = CGRect(x: frame.width - selectButton.bounds.width - padding, y: padding, width: selectButton.bounds.width, height: selectButton.bounds.height)
+        let padding: CGFloat = 3
+        let buttonSize: CGFloat = 21
+        selectButton.frame = CGRect(x: frame.width - buttonSize - padding, y: frame.height - buttonSize - padding, width: buttonSize, height: buttonSize)
     }
     
-    @objc private func imageButtonClicked() {
-        imageClicked?(asset)
+    @objc private func selectButtonDidClick() {
+        selectButtonClicked?(asset)
     }
     
     private var selectionAnimation: CAKeyframeAnimation {
@@ -343,3 +383,15 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         return animation
     }
 }
+
+class PAPohtoPickerSelectButton: UIButton {
+    
+    /// 扩大2倍点击区域
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        let coefficient: CGFloat = 3
+        let enlargedBounds = CGRect(x: -bounds.width * (coefficient - 1), y: -bounds.height * (coefficient - 1), width: bounds.width * coefficient, height: bounds.height * coefficient)
+        return enlargedBounds.contains(point)
+    }
+}
+
+

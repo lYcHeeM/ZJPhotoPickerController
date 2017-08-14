@@ -22,6 +22,8 @@ extension PHAsset {
     private struct AssociatedKeys {
         static var isSelectedKey    = 0
         static var selectedOrderKey = 1
+        static var canSelectKey     = 2
+        static var cachedImageKey   = 3
     }
     var isSelected: Bool {
         set {
@@ -42,6 +44,28 @@ extension PHAsset {
                 return value
             } else {
                 return NSNumber(value: 0)
+            }
+        }
+    }
+    var canSelect: Bool {
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.canSelectKey, newValue, .OBJC_ASSOCIATION_ASSIGN)
+        } get {
+            if let value = objc_getAssociatedObject(self, &AssociatedKeys.canSelectKey) as? Bool {
+                return value
+            } else {
+                return true
+            }
+        }
+    }
+    var cachedImage: UIImage? {
+        set {
+            objc_setAssociatedObject(self, &AssociatedKeys.cachedImageKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        } get {
+            if let value = objc_getAssociatedObject(self, &AssociatedKeys.cachedImageKey) as? UIImage {
+                return value
+            } else {
+                return nil
             }
         }
     }
@@ -132,7 +156,7 @@ class ZJPhotoPickerHelper {
         }
     }
     
-    class func queryAlbumList(ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = true, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
+    class func queryAlbumList(cameraRollOnly: Bool = false, ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = true, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
         if !allowsImage && !allowsVideo { completion([]) }
         
         let options = PHFetchOptions()
@@ -144,11 +168,15 @@ class ZJPhotoPickerHelper {
         }
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: ascending)]
         
+        let cameraRoll   = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .smartAlbumUserLibrary, options: nil)
         let smartAlbums  = PHAssetCollection.fetchAssetCollections(with: .smartAlbum, subtype: .albumRegular, options: nil)
         let streamAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumMyPhotoStream, options: nil)
         let userAlbums   = PHAssetCollection.fetchTopLevelUserCollections(with: nil)
         let sharedAlbums = PHAssetCollection.fetchAssetCollections(with: .album, subtype: .albumCloudShared, options: nil)
-        let albums = [smartAlbums, streamAlbums, userAlbums, sharedAlbums]
+        var albums = [smartAlbums, streamAlbums, userAlbums, sharedAlbums]
+        if cameraRollOnly {
+            albums = [cameraRoll]
+        }
         
         var albumModels = [ZJAlbumModel]()
         DispatchQueue.global().async {
