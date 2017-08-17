@@ -21,15 +21,15 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        print(Double.greatestFiniteMagnitude)
         setupUI()
     }
     
     func setupUI() {
         let flowLayout = UICollectionViewFlowLayout()
-        let pixel = 1/UIScreen.main.scale
         let itemCountInOneLine = 4
-        flowLayout.minimumInteritemSpacing = 2*pixel
-        flowLayout.minimumLineSpacing = 2*pixel
+        flowLayout.minimumInteritemSpacing = 3
+        flowLayout.minimumLineSpacing = 3
         let itemSize = (view.frame.width - CGFloat(itemCountInOneLine - 1) * flowLayout.minimumInteritemSpacing) / CGFloat(itemCountInOneLine)
         flowLayout.itemSize = CGSize(width: itemSize, height: itemSize)
         collectionView = UICollectionView(frame: CGRect(x: 0, y: separator.frame.maxY, width: view.frame.width, height: view.frame.height - separator.frame.maxY), collectionViewLayout: flowLayout)
@@ -41,19 +41,11 @@ class ViewController: UIViewController {
     }
 
     @IBAction func showPicker(_ sender: Any) {
-        // Suggested method, better performance
-        let pickerVc = ZJPhotoPickerController(maxSelectionAllowed: 9)
-        pickerVc.presented(from: self, animated: true, completion: nil) { (_) in
-            pickerVc.willDismissWhenDoneBtnClicked = { images, _ in
-                self.selectedImages.append(contentsOf: images)
-            }
+        let pickerVc = ZJPhotoPickerController(maxSelectionAllowed: 5)
+        pickerVc.presented(from: self, animated: true, completion: nil, imageQueryFinished: nil)
+        pickerVc.didDismissWhenDoneBtnClicked = { images, _ in
+            self.selectedImages.append(contentsOf: images)
         }
-        
-//        ZJPhotoPickerHelper.presentPhotoPicker(in: self, maxSelectionAllowed: 50, imageQueryFinished: { vc in
-//            vc.willDismissWhenDoneBtnClicked = { images, _ in
-//                self.selectedImages.append(contentsOf: images)
-//            }
-//        })
     }
 }
 

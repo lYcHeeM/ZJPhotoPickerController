@@ -9,12 +9,8 @@
 import UIKit
 import Photos
 
-class ZJPhotoPickerController: UINavigationController {
-
-    deinit {
-        debugPrint("++ZJPhotoPickerController")
-    }
-    var albumModels = [ZJAlbumModel]() {
+open class ZJPhotoPickerController: UINavigationController {
+    open var albumModels = [ZJAlbumModel]() {
         didSet {
             albumListController.albumModels = albumModels
             albumListController.tableView.reloadData()
@@ -22,18 +18,21 @@ class ZJPhotoPickerController: UINavigationController {
     }
     fileprivate var albumListController: ZJPhotoPickerAlbumListController!
     
-    var selections = [PHAsset]()
-    var selectionsChanged            : (([PHAsset]) -> Void)? = nil
-    var selectionsFinished           : (([PHAsset]) -> Void)? = nil
-    var willDismissWhenDoneBtnClicked: (([UIImage], [PHAsset]) -> Void)? = nil
+    open var selections = [PHAsset]()
     
-    var maxSelectionAllowed = 9 {
+    open var selectionsChanged            : (([PHAsset]) -> Void)?
+    open var selectionsFinished           : (([PHAsset]) -> Void)?
+    open var willDismissWhenDoneBtnClicked: (([UIImage], [PHAsset]) -> Void)?
+    open var didDismissWhenDoneBtnClicked : (([UIImage], [PHAsset]) -> Void)?
+    
+    open var maxSelectionAllowed = 9 {
         didSet {
             albumListController.maxSelectionAllowed = maxSelectionAllowed
         }
     }
+    open var showsSelectedOrder: Bool = true
     
-    required init(albumModels: [ZJAlbumModel] = [], maxSelectionAllowed: Int = 9) {
+    public required init(albumModels: [ZJAlbumModel] = [], maxSelectionAllowed: Int = 9) {
         let rootVc = ZJPhotoPickerAlbumListController(albumModels: albumModels, maxSelectionAllowed: maxSelectionAllowed)
         super.init(nibName: nil, bundle: nil)
         self.pushViewController(rootVc, animated: false)
@@ -42,18 +41,18 @@ class ZJPhotoPickerController: UINavigationController {
         self.maxSelectionAllowed = maxSelectionAllowed
     }
     
-    required init?(coder aDecoder: NSCoder) {
+    public required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override func viewDidLoad() {
+    open override func viewDidLoad() {
         super.viewDidLoad()
         navigationBar.barStyle  = .black
         navigationBar.tintColor = .white
         interactivePopGestureRecognizer?.delegate = nil
     }
     
-    func pushToCameraRollThumbnailController(animated: Bool) {
+    open func pushToCameraRollThumbnailController(animated: Bool) {
         var cameraRollIndex = 0
         for album in albumModels {
             if album.isCameraRoll { break }
@@ -63,20 +62,63 @@ class ZJPhotoPickerController: UINavigationController {
         albumListController.tableView(albumListController.tableView, didSelectRowAt: IndexPath(row: cameraRollIndex, section: 0))
     }
     
-    func presented(from controller: UIViewController, animated: Bool, completion: (() -> Void)?, imageQueryFinished: @escaping ([ZJAlbumModel]) -> Void) {
+    open func presented(from controller: UIViewController, animated: Bool, completion: (() -> Void)?, imageQueryFinished: (([ZJAlbumModel]) -> Void)?) {
+        controller.present(self, animated: animated, completion: completion)
+        let pushingAction = {
+            let hud = ZJPhotoPickerHUD.show(message: "", inView: self.view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
+            ZJPhotoPickerHelper.queryAlbumList(cameraRollOnly: true) { (albumModels) in
+                hud?.hide(animated: false)
+                imageQueryFinished?(albumModels)
+                self.albumModels = albumModels
+                self.pushToCameraRollThumbnailController(animated: false)
+            }
+        }
+        
         let status = PHPhotoLibrary.authorizationStatus()
-        if status == .restricted || status == .denied {
-            ZJPhotoPickerHUD.show(message: "Saving failed! Can't access your ablum, check in \"Settings\"->\"Privacy\"->\"Photos\".", inView: controller.view, needsIndicator: false, hideAfter: 2.5)
+        if status == .notDetermined {
+            PHPhotoLibrary.requestAuthorization({ (status) in
+                guard status == .authorized else { return }
+                pushingAction()
+            })
             return
         }
-        controller.present(self, animated: animated, completion: completion)
-        let hud = ZJPhotoPickerHUD.show(message: "", inView: view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
-        ZJPhotoPickerHelper.queryAlbumList(cameraRollOnly: true) { (albumModels) in
-            hud?.hide(animated: false)
-            imageQueryFinished(albumModels)
-            self.albumModels = albumModels
-            self.pushToCameraRollThumbnailController(animated: false)
+        if status == .restricted || status == .denied {
+            setupAuthorizationFailedUI()
+            return
         }
+        pushingAction()
+    }
+    
+    private func setupAuthorizationFailedUI() {
+        let hintLabel = UILabel()
+        view.addSubview(hintLabel)
+        hintLabel.text = "此应用程序没有权限访问您的照片或视频\n在\"设置-隐私-图片\"中开启后即可查看"
+        hintLabel.font = UIFont.systemFont(ofSize: 15)
+        hintLabel.textColor = UIColor.gray
+        hintLabel.numberOfLines = 0
+        hintLabel.textAlignment = .center
+        let maxSize = CGSize(width: view.frame.width - 50, height: CGFloat.greatestFiniteMagnitude)
+        let hintLabelNeedSize = hintLabel.sizeThatFits(maxSize)
+        hintLabel.frame = CGRect(x: (view.frame.width - hintLabelNeedSize.width)/2, y: 120 + 64, width: hintLabelNeedSize.width, height: hintLabelNeedSize.height)
+        
+        let button = UIButton(type: .system)
+        view.addSubview(button)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 13)
+        button.setTitle("前往设置", for: .normal)
+        button.tintColor = UIColor.deepOrange
+        button.addTarget(self, action: #selector(goPreferenceUrl), for: .touchUpInside)
+        button.sizeToFit()
+        button.center.x = hintLabel.center.x
+        button.frame.origin.y = hintLabel.frame.maxY + 1
+    }
+    
+    @objc private func goPreferenceUrl() {
+        if let url = URL(string: UIApplicationOpenSettingsURLString), UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.openURL(url)
+        }
+//        if let url = URL(string: "prefs:root=Photos"), UIApplication.shared.canOpenURL(url) {
+//            UIApplication.shared.openURL(url)
+//        }
     }
 }
 
@@ -102,6 +144,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        title = "照片"
         tableView.tableFooterView = UIView()
         tableView.layoutMargins = .zero
         tableView.separatorInset = .zero
@@ -144,12 +187,12 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
             DispatchQueue.global().async {
                 self.sameAssetsManipulation(assets)
                 DispatchQueue.main.async {
-                    self.pushing(with: indexPath, assets: assets, hiding: hud)
+                    self.pushing(with: indexPath, assets: assets, hiding: hud, title: self.albumModels[indexPath.row].title)
                 }
             }
         } else {
             sameAssetsManipulation(assets)
-            pushing(with: indexPath, assets: assets, hiding: hud)
+            pushing(with: indexPath, assets: assets, hiding: hud, title: albumModels[indexPath.row].title)
         }
     }
     
@@ -170,15 +213,17 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         }
     }
     
-    private func pushing(with indexPath: IndexPath, assets: [PHAsset], hiding hud: ZJPhotoPickerHUD?) {
+    private func pushing(with indexPath: IndexPath, assets: [PHAsset], hiding hud: ZJPhotoPickerHUD?, title: String) {
         var thumbnailVc: ZJPhotoPickerThumbnailController!
         if self.thumbnialControllers.count > indexPath.row {
             thumbnailVc = self.thumbnialControllers[indexPath.row]
             thumbnailVc.assets = assets
             thumbnailVc.isSelectionFull = isSelectionsFull
+            thumbnailVc.title = title
         } else {
             thumbnailVc = ZJPhotoPickerThumbnailController(assets: self.albumModels[indexPath.row].assets, maxSelectionAllowed: self.maxSelectionAllowed, selectedAssetsPointer: &self.selectedAssets, sumOfImageSizePointer: &self.sumOfImageSize, isOriginalPointer: &isOriginal, isSelectionsFullPointer: &isSelectionsFull)
             self.thumbnialControllers.append(thumbnailVc)
+            thumbnailVc.title = title
         }
         hud?.hide(animated: false)
         self.navigationController?.pushViewController(thumbnailVc, animated: pushingAnimated)

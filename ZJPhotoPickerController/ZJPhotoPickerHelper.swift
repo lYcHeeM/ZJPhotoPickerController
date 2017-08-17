@@ -9,16 +9,7 @@
 import UIKit
 import Photos
 
-//class ZJAssetModel: Equatable {
-//    var asset: PHAsset!
-//    var isSelected = false
-//    
-//    public static func ==(lhs: ZJAssetModel, rhs: ZJAssetModel) -> Bool {
-//        return lhs.asset == rhs.asset && lhs.isSelected == rhs.isSelected
-//    }
-//}
-
-extension PHAsset {
+internal extension PHAsset {
     private struct AssociatedKeys {
         static var isSelectedKey    = 0
         static var selectedOrderKey = 1
@@ -75,12 +66,12 @@ extension PHAsset {
     }
 }
 
-class ZJAlbumModel {
-    var title = ""
-    var count = 0
-    var isCameraRoll = false
-    var result: PHFetchResult<PHAsset>?
-    var firstAsset: PHAsset? {
+open class ZJAlbumModel {
+    open var title = ""
+    open var count = 0
+    open var isCameraRoll = false
+    open var result: PHFetchResult<PHAsset>?
+    open var firstAsset: PHAsset? {
         didSet {
             guard let firstAsset = firstAsset else { return }
             ZJPhotoPickerHelper.image(for: firstAsset, synchronous: true, size: CGSize(width: 400, height: 400)) { (image, _) in
@@ -88,30 +79,14 @@ class ZJAlbumModel {
             }
         }
     }
-    var cover: UIImage?
-    var assets = [PHAsset]()
+    open var cover: UIImage?
+    open var assets = [PHAsset]()
 }
 
-class ZJPhotoPickerHelper {    
-    class func presentPhotoPicker(in controller: UIViewController, animated: Bool = true, maxSelectionAllowed: Int,  imageQueryFinished: @escaping (ZJPhotoPickerController) -> Swift.Void, completion: (() -> Swift.Void)? = nil) {
-        let status = PHPhotoLibrary.authorizationStatus()
-        if status == .restricted || status == .denied {
-            ZJPhotoPickerHUD.show(message: "Saving failed! Can't access your ablum, check in \"Settings\"->\"Privacy\"->\"Photos\".", inView: controller.view, needsIndicator: false, hideAfter: 2.5)
-            return
-        }
-        let hud = ZJPhotoPickerHUD.show(message: "", inView: controller.view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
-        queryAlbumList { (albumModels) in
-            // end hud
-            hud?.hide(animated: false)
-            let target = ZJPhotoPickerController(albumModels: albumModels, maxSelectionAllowed: maxSelectionAllowed)
-            imageQueryFinished(target)
-            target.pushToCameraRollThumbnailController(animated: false)
-            controller.present(target, animated: animated, completion: completion)
-        }
-    }
+open class ZJPhotoPickerHelper {
     
     /// 如果要获取原图, size参数传PHImageManagerMaximumSize即可.
-    class func images(for assets: [PHAsset], size: CGSize, completion: @escaping ([UIImage]) -> Void) {
+    open class func images(for assets: [PHAsset], size: CGSize, completion: @escaping ([UIImage]) -> Void) {
         var result = [UIImage]()
         DispatchQueue.global().async {
             for asset in assets {
@@ -128,11 +103,11 @@ class ZJPhotoPickerHelper {
         }
     }
     
-    class func originalImage(for asset: PHAsset, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
+    open class func originalImage(for asset: PHAsset, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
         image(for: asset, size: PHImageManagerMaximumSize, resizeMode: .exact, completion: completion)
     }
     
-    class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .fast, contentMode: PHImageContentMode = .aspectFill, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
+    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .fast, contentMode: PHImageContentMode = .aspectFill, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
         let options = PHImageRequestOptions()
         options.resizeMode = resizeMode
         options.isSynchronous = synchronous
@@ -140,7 +115,7 @@ class ZJPhotoPickerHelper {
         PHCachingImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options, resultHandler: completion)
     }
     
-    class func imageSize(of assets: [PHAsset], synchronous: Bool, completion: @escaping (Int) -> Void) {
+    open class func imageSize(of assets: [PHAsset], synchronous: Bool, completion: @escaping (Int) -> Void) {
         let options = PHImageRequestOptions()
         options.isSynchronous = synchronous
         var size  = 0
@@ -156,7 +131,7 @@ class ZJPhotoPickerHelper {
         }
     }
     
-    class func queryAlbumList(cameraRollOnly: Bool = false, ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = true, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
+    open class func queryAlbumList(cameraRollOnly: Bool = false, ascending: Bool = true, allowsImage: Bool = true, allowsVideo: Bool = true, completion: @escaping ([ZJAlbumModel]) -> Swift.Void) {
         if !allowsImage && !allowsVideo { completion([]) }
         
         DispatchQueue.global().async {
@@ -235,7 +210,7 @@ class ZJPhotoPickerHelper {
     }
 }
 
-extension Int {
+public extension Int {
     var bytesSize: String {
         let mbAmount   = Double(1024 * 1024)
         let doubleSelf = Double(self)

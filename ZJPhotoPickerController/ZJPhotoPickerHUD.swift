@@ -11,12 +11,13 @@ import UIKit
 open class ZJPhotoPickerHUD: UIToolbar {
 
     fileprivate var label = UILabel()
-    fileprivate var indicator = UIActivityIndicatorView(activityIndicatorStyle: .gray)
+    fileprivate var indicator = UIActivityIndicatorView(activityIndicatorStyle: .white)
     
     required public init(message: String?) {
         super.init(frame: .zero)
+        barStyle           = .black
         layer.cornerRadius = 5
-        clipsToBounds = true
+        clipsToBounds      = true
         
         addSubview(label)
         label.text          = message

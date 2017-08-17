@@ -17,9 +17,12 @@
 		B23B97491F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B97451F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift */; };
 		B23B974B1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B974A1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift */; };
 		B23B974E1F3C090F007745B8 /* UIImageExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = B23B974D1F3C090F007745B8 /* UIImageExtension.swift */; };
+		FFA73E5C27A32E3F56D0DFC8 /* Pods_ZJPhotoPickerController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB0AC986BEB972283B69AC86 /* Pods_ZJPhotoPickerController.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		AB0AC986BEB972283B69AC86 /* Pods_ZJPhotoPickerController.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ZJPhotoPickerController.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		B21111E1C662A214DD478570 /* Pods-ZJPhotoPickerController.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ZJPhotoPickerController.release.xcconfig"; path = "Pods/Target Support Files/Pods-ZJPhotoPickerController/Pods-ZJPhotoPickerController.release.xcconfig"; sourceTree = "<group>"; };
 		B23B972D1F39B56E007745B8 /* ZJPhotoPickerController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZJPhotoPickerController.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B23B97301F39B56E007745B8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		B23B97321F39B56E007745B8 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -32,6 +35,7 @@
 		B23B97451F39B582007745B8 /* ZJPhotoPickerThumbnailController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZJPhotoPickerThumbnailController.swift; sourceTree = "<group>"; };
 		B23B974A1F39B5A7007745B8 /* ZJPhotoPickerHUD.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZJPhotoPickerHUD.swift; sourceTree = "<group>"; };
 		B23B974D1F3C090F007745B8 /* UIImageExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UIImageExtension.swift; sourceTree = "<group>"; };
+		B65D5EDA791830452FA80061 /* Pods-ZJPhotoPickerController.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ZJPhotoPickerController.debug.xcconfig"; path = "Pods/Target Support Files/Pods-ZJPhotoPickerController/Pods-ZJPhotoPickerController.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,17 +43,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FFA73E5C27A32E3F56D0DFC8 /* Pods_ZJPhotoPickerController.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1EB0A99283314F4E0AFDB0C4 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				B65D5EDA791830452FA80061 /* Pods-ZJPhotoPickerController.debug.xcconfig */,
+				B21111E1C662A214DD478570 /* Pods-ZJPhotoPickerController.release.xcconfig */,
+			);
+			name = Pods;
+			sourceTree = "<group>";
+		};
 		B23B97241F39B56E007745B8 = {
 			isa = PBXGroup;
 			children = (
 				B23B972F1F39B56E007745B8 /* ZJPhotoPickerController */,
 				B23B972E1F39B56E007745B8 /* Products */,
+				1EB0A99283314F4E0AFDB0C4 /* Pods */,
+				C2176881966E4343D0919DB4 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -87,6 +103,14 @@
 			name = PAPhotoPicker;
 			sourceTree = "<group>";
 		};
+		C2176881966E4343D0919DB4 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AB0AC986BEB972283B69AC86 /* Pods_ZJPhotoPickerController.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -94,9 +118,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B23B973F1F39B56E007745B8 /* Build configuration list for PBXNativeTarget "ZJPhotoPickerController" */;
 			buildPhases = (
+				76D4C59469839A8CA4ECD25B /* [CP] Check Pods Manifest.lock */,
 				B23B97291F39B56E007745B8 /* Sources */,
 				B23B972A1F39B56E007745B8 /* Frameworks */,
 				B23B972B1F39B56E007745B8 /* Resources */,
+				A433D8B06DC73AF242C744F3 /* [CP] Embed Pods Frameworks */,
+				FD8C5C4F4AB54E07855150BC /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -154,6 +181,54 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		76D4C59469839A8CA4ECD25B /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n";
+			showEnvVarsInLog = 0;
+		};
+		A433D8B06DC73AF242C744F3 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-ZJPhotoPickerController/Pods-ZJPhotoPickerController-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		FD8C5C4F4AB54E07855150BC /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "[CP] Copy Pods Resources";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Pods/Target Support Files/Pods-ZJPhotoPickerController/Pods-ZJPhotoPickerController-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B23B97291F39B56E007745B8 /* Sources */ = {
@@ -287,6 +362,7 @@
 		};
 		B23B97401F39B56E007745B8 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B65D5EDA791830452FA80061 /* Pods-ZJPhotoPickerController.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = 7G9Q3YE88T;
@@ -301,6 +377,7 @@
 		};
 		B23B97411F39B56E007745B8 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = B21111E1C662A214DD478570 /* Pods-ZJPhotoPickerController.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				DEVELOPMENT_TEAM = 7G9Q3YE88T;

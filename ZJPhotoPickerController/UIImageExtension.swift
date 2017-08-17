@@ -8,7 +8,7 @@
 
 import UIKit
 
-extension UIImage {
+internal extension UIImage {
     /// 用颜色创建一张图片
     convenience init?(color: UIColor, size: CGSize = CGSize(width: 1, height: 1)) {
         let rect = CGRect(origin: .zero, size: size)
@@ -29,38 +29,8 @@ extension UIImage {
     }
 }
 
-extension UIColor {
-    public convenience init(R: Int, G: Int, B: Int, A: Float = 1.0) {
-        self.init(red:   CGFloat(Float(R) / 255.0),
-                  green: CGFloat(Float(G) / 255.0),
-                  blue:  CGFloat(Float(B) / 255.0),
-                  alpha: CGFloat(A))
-    }
-    
-    public convenience init(withRGBValue rgbValue: Int, alpha: Float = 1.0) {
-        let r = ((rgbValue & 0xFF0000) >> 16)
-        let g = ((rgbValue & 0x00FF00) >> 8)
-        let b = (rgbValue & 0x0000FF)
-        self.init(R: r,
-                  G: g,
-                  B: b,
-                  A: alpha)
-    }
-    
-    /// 获取rgba的数值, 默认返回黑色的数值
-    public var components: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
-        let cgColor = self.cgColor
-        var result: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) = (r: 0, g: 0, b: 0, a: 1)
-        guard let components = cgColor.components, components.count >= 4 else { return result }
-        result.a = components[0]
-        result.g = components[1]
-        result.b = components[2]
-        result.a = components[3]
-        
-        return result
-    }
-    
+public extension UIColor {
     public class var deepOrange: UIColor {
-        return UIColor(withRGBValue: 0xFF6602)
+        return UIColor(colorLiteralRed: 255/255, green: 102/255, blue: 2/255, alpha: 1.0)
     }
 }

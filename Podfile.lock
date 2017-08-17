@@ -1,0 +1,17 @@
+PODS:
+  - SDWebImage (3.7.6):
+    - SDWebImage/Core (= 3.7.6)
+  - SDWebImage/Core (3.7.6)
+  - ZJImageBrowser (0.0.7):
+    - SDWebImage (~> 3.7.5)
+
+DEPENDENCIES:
+  - ZJImageBrowser (= 0.0.7)
+
+SPEC CHECKSUMS:
+  SDWebImage: c325cf02c30337336b95beff20a13df489ec0ec9
+  ZJImageBrowser: 67805b48bf51c83215a2cd49bcc056b4970e70c1
+
+PODFILE CHECKSUM: 4a068dcefd3e6be8b25d0abd67b2d342315c3dd0
+
+COCOAPODS: 1.2.1
