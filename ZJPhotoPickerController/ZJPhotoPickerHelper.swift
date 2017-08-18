@@ -66,6 +66,20 @@ internal extension PHAsset {
     }
 }
 
+open class ZJPhotoPickerConfiguration {
+    static var `default` : ZJPhotoPickerConfiguration {
+        return PAPhotoPickerConfiguration()
+    }
+    open var maxSelectionAllowed      : Int  = 9
+    open var assetsSortAscending      : Bool = true
+    open var showsSelectedOrder       : Bool = true
+    open var allowsVideo              : Bool = true
+    open var allowsImage              : Bool = true
+    open var allowsSelectOriginalAsset: Bool = true
+    /// fullScreenSize by default
+    open var imageSizeOnCompletion    : CGSize = CGSize(width: UIScreen.main.bounds.width * UIScreen.main.scale, height: UIScreen.main.bounds.width * UIScreen.main.scale)
+}
+
 open class ZJAlbumModel {
     open var title = ""
     open var count = 0
@@ -74,7 +88,7 @@ open class ZJAlbumModel {
     open var firstAsset: PHAsset? {
         didSet {
             guard let firstAsset = firstAsset else { return }
-            ZJPhotoPickerHelper.image(for: firstAsset, synchronous: true, size: CGSize(width: 400, height: 400)) { (image, _) in
+            ZJPhotoPickerHelper.image(for: firstAsset, synchronous: true, size: CGSize(width: 200, height: 200)) { (image, _) in
                 self.cover = image
             }
         }

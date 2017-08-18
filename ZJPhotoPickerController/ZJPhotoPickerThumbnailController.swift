@@ -45,10 +45,9 @@ class ZJPhotoPickerThumbnailController: UIViewController {
     
     fileprivate var previewingLocatedIndexPath: IndexPath?
     
-    required init(assets: [PHAsset], maxSelectionAllowed: Int = 9, selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>, isSelectionsFullPointer: UnsafeMutablePointer<Bool>) {
+    required init(assets: [PHAsset], selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>, isSelectionsFullPointer: UnsafeMutablePointer<Bool>) {
         super.init(nibName: nil, bundle: nil)
         self.assets                  = assets
-        self.maxSelectionAllowed     = maxSelectionAllowed
         self.selectedAssetsPointer   = selectedAssetsPointer
         self.sumOfImageSizePointer   = sumOfImageSizePointer
         self.isOriginalPointer       = isOriginalPointer
@@ -63,29 +62,19 @@ class ZJPhotoPickerThumbnailController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .white
         setupUI()
+        acquireConfiguration()
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
-        if isMovingFromParentViewController, naviVc.albumModels.count <= 1 {
-            // 因弹出picker时只查询了"所有照片", 所以在返回到相册列表时, 须查询其他相册
-            let hud = ZJPhotoPickerHUD.show(message: nil, inView: naviVc.topViewController?.view, animated: true, needsIndicator: true, hideAfter: TimeInterval.greatestFiniteMagnitude)
-            ZJPhotoPickerHelper.queryAlbumList { (albumModels) in
-                hud?.hide(animated: false)
-                naviVc.albumModels = albumModels
-            }
-        }
+    private func acquireConfiguration() {
+        guard let naviVC = navigationController as? ZJPhotoPickerController else { return }
+        maxSelectionAllowed = naviVC.configuration.maxSelectionAllowed
+        originalSizeCheck.isHidden = !naviVC.configuration.allowsSelectOriginalAsset
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         originalSizeCheck.isSelected = isOriginalPointer.pointee
         refreshBottomBar()
-    }
-    
-    deinit {
-        debugPrint("--ZJPhotoPickerThumbnailController")
     }
 }
 
@@ -171,8 +160,7 @@ extension ZJPhotoPickerThumbnailController {
         guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
         naviVc.selections = selectedAssetsPointer.pointee
         let hud = ZJPhotoPickerHUD.show(message: nil, inView: view, hideAfter: TimeInterval.greatestFiniteMagnitude)
-        let fullScreenSize = UIScreen.main.bounds.width * UIScreen.main.scale
-        var size = CGSize(width: fullScreenSize, height: fullScreenSize)
+        var size = naviVc.configuration.imageSizeOnCompletion
         if isOriginalPointer.pointee == true {
             size = PHImageManagerMaximumSize
         }
@@ -224,7 +212,7 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ZJPhotoPickerThumbnailCell.reuseIdentifier, for: indexPath) as! ZJPhotoPickerThumbnailCell
         cell.asset = assets[indexPath.item]
         if let naviVc = self.navigationController as? ZJPhotoPickerController {
-            cell.showsSelectedOrder = naviVc.showsSelectedOrder
+            cell.showsSelectedOrder = naviVc.configuration.showsSelectedOrder
         }
         weak var weakInstance = cell
         cell.selectButtonClicked = { [weak self] asset in
@@ -383,8 +371,8 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         didSet {
             guard let asset = asset else { return }
             var imageSize = imageButton.bounds.size
-            if imageSize.width < 300 {
-                imageSize = CGSize(width: 300, height: 300)
+            if imageSize.width < 240 {
+                imageSize = CGSize(width: 240, height: 240)
             }
             if asset.cachedImage == nil {
                 ZJPhotoPickerHelper.image(for: asset, size: imageSize) { (image, _) in

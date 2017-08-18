@@ -41,9 +41,10 @@ class ViewController: UIViewController {
     }
 
     @IBAction func showPicker(_ sender: Any) {
-        let pickerVc = ZJPhotoPickerController(maxSelectionAllowed: 5)
+        let config = ZJPhotoPickerConfiguration.default
+        let pickerVc = ZJPhotoPickerController(configuration: config)
         pickerVc.presented(from: self, animated: true, completion: nil, imageQueryFinished: nil)
-        pickerVc.didDismissWhenDoneBtnClicked = { images, _ in
+        pickerVc.didDismissWhenDoneBtnClicked = { images, assets in
             self.selectedImages.append(contentsOf: images)
         }
     }
