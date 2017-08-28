@@ -164,7 +164,7 @@ extension ZJPhotoPickerThumbnailController {
         if isOriginalPointer.pointee == true {
             size = PHImageManagerMaximumSize
         }
-        ZJPhotoPickerHelper.images(for: naviVc.selections, size: size) { (images) in
+        ZJPhotoPickerHelper.images(for: naviVc.selections, size: size, resizeMode: .fast) { (images) in
             hud?.hide(animated: false)
             naviVc.willDismissWhenDoneBtnClicked?(images, naviVc.selections)
             naviVc.dismiss(animated: true) {
@@ -335,14 +335,16 @@ extension ZJPhotoPickerThumbnailController: UIViewControllerPreviewingDelegate {
         guard
             let indexPath   = collectionView.indexPathForItem(at: point),
             let cell        = collectionView.cellForItem(at: indexPath) as? ZJPhotoPickerThumbnailCell,
-            let asset       = cell.asset,
-            let imageButton = previewingContext.sourceView as? UIButton
+            let asset       = cell.asset
             else { return nil }
         previewingLocatedIndexPath = indexPath
-        let placeholderImage       = imageButton.image(for: .normal)
-        let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset, shouldDownloadImage: false, placeholderImage: placeholderImage, imageContainer: nil)
+        var placeholder: UIImage? = nil
+        ZJPhotoPickerHelper.image(for: asset, synchronous: true, size: CGSize(width: 200, height: 200), resizeMode: .fast, completion: { (image, info) in
+            placeholder = image
+        })
+        let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset, shouldDownloadImage: false, placeholderImage: placeholder, imageContainer: nil)
         let target = ZJImageBrowserPreviewingController(imageWrapper: wrapper)
-        target.preferredContentSize = target.supposedContentSize(with: placeholderImage)
+        target.preferredContentSize = target.supposedContentSize(with: placeholder)
         target.needsSaveAction = false
         target.needsCopyAction = false
         return target
@@ -375,7 +377,7 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
                 imageSize = CGSize(width: 240, height: 240)
             }
             if asset.cachedImage == nil {
-                ZJPhotoPickerHelper.image(for: asset, size: imageSize) { (image, _) in
+                ZJPhotoPickerHelper.image(for: asset, size: imageSize, resizeMode: .exact) { (image, _) in
                     self.imageButton.setImage(image, for: .normal)
                     asset.cachedImage = image
                 }

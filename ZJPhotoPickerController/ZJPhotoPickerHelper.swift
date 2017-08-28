@@ -68,7 +68,7 @@ internal extension PHAsset {
 
 open class ZJPhotoPickerConfiguration {
     static var `default` : ZJPhotoPickerConfiguration {
-        return PAPhotoPickerConfiguration()
+        return ZJPhotoPickerConfiguration()
     }
     open var maxSelectionAllowed      : Int  = 9
     open var assetsSortAscending      : Bool = true
@@ -100,11 +100,11 @@ open class ZJAlbumModel {
 open class ZJPhotoPickerHelper {
     
     /// 如果要获取原图, size参数传PHImageManagerMaximumSize即可.
-    open class func images(for assets: [PHAsset], size: CGSize, completion: @escaping ([UIImage]) -> Void) {
+    open class func images(for assets: [PHAsset], size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, completion: @escaping ([UIImage]) -> Void) {
         var result = [UIImage]()
         DispatchQueue.global().async {
             for asset in assets {
-                self.image(for: asset, synchronous: true, size: size, completion: { (image, _) in
+                self.image(for: asset, synchronous: true, size: size, resizeMode: resizeMode, completion: { (image, _) in
                     if let image = image {
                         result.append(image)
                     }
@@ -121,10 +121,13 @@ open class ZJPhotoPickerHelper {
         image(for: asset, size: PHImageManagerMaximumSize, resizeMode: .exact, completion: completion)
     }
     
-    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .fast, contentMode: PHImageContentMode = .aspectFill, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
+    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, contentMode: PHImageContentMode = .aspectFill, progress: PHAssetImageProgressHandler? = nil, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
         let options = PHImageRequestOptions()
-        options.resizeMode = resizeMode
-        options.isSynchronous = synchronous
+        options.resizeMode             = resizeMode
+        options.isSynchronous          = synchronous
+        options.isNetworkAccessAllowed = true
+        options.progressHandler        = progress
+        options.deliveryMode           = .highQualityFormat
         
         PHCachingImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options, resultHandler: completion)
     }
@@ -135,7 +138,7 @@ open class ZJPhotoPickerHelper {
         var size  = 0
         var index = 0
         for asset in assets {
-            PHCachingImageManager.default().requestImageData(for: asset, options: options, resultHandler: { (data, dataUTI, orientation, info) in
+            PHImageManager.default().requestImageData(for: asset, options: options, resultHandler: { (data, dataUTI, orientation, info) in
                 index += 1
                 size  += data?.count ?? 0
                 if index >= assets.count {
