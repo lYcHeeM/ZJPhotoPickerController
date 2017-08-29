@@ -10,9 +10,6 @@ import UIKit
 import Photos
 
 open class ZJPhotoPickerController: UINavigationController {
-    deinit {
-        debugPrint("++ZJPhotoPickerController")
-    }
     open var albumModels = [ZJAlbumModel]() {
         didSet {
             albumListController.albumModels = albumModels
@@ -86,7 +83,9 @@ open class ZJPhotoPickerController: UINavigationController {
         if status == .notDetermined {
             PHPhotoLibrary.requestAuthorization({ (status) in
                 guard status == .authorized else { return }
-                pushingAction()
+                DispatchQueue.main.async {
+                    pushingAction()
+                }
             })
         } else if status == .restricted || status == .denied {
             setupAuthorizationFailedUI()
@@ -129,13 +128,13 @@ open class ZJPhotoPickerController: UINavigationController {
 }
 
 class ZJPhotoPickerAlbumListController: UITableViewController {
-    fileprivate var albumModels = [ZJAlbumModel]()
-    fileprivate var thumbnialControllers  = [ZJPhotoPickerThumbnailController]()
-    fileprivate var selectedAssets        = [PHAsset]()
-    fileprivate var sumOfImageSize        = 0
-    fileprivate var isOriginal            = false
-    fileprivate var isSelectionsFull      = false
-    fileprivate var pushingAnimated: Bool = true
+    fileprivate var albumModels          = [ZJAlbumModel]()
+    fileprivate var thumbnialControllers = [ZJPhotoPickerThumbnailController]()
+    fileprivate var selectedAssets       = [ZJAssetModel]()
+    fileprivate var sumOfImageSize       = 0
+    fileprivate var isOriginal           = false
+    fileprivate var isSelectionsFull     = false
+    fileprivate var pushingAnimated      = true
     
     required init(albumModels: [ZJAlbumModel]) {
         super.init(style: .plain)
@@ -200,7 +199,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         }
     }
     
-    private func sameAssetsManipulation(_ assets: [PHAsset]) {
+    private func sameAssetsManipulation(_ assets: [ZJAssetModel]) {
         for asset in assets {
             asset.isSelected = false
         }
@@ -209,7 +208,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         }
         for asset in assets {
             for selection in self.selectedAssets {
-                if asset.isSame(to: selection) {
+                if asset == selection {
                     asset.isSelected = true
                     asset.selectedOrder = selection.selectedOrder
                 }
@@ -217,7 +216,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         }
     }
     
-    private func pushing(with indexPath: IndexPath, assets: [PHAsset], hiding hud: ZJPhotoPickerHUD?, title: String) {
+    private func pushing(with indexPath: IndexPath, assets: [ZJAssetModel], hiding hud: ZJPhotoPickerHUD?, title: String) {
         var thumbnailVc: ZJPhotoPickerThumbnailController!
         if self.thumbnialControllers.count > indexPath.row {
             thumbnailVc = self.thumbnialControllers[indexPath.row]

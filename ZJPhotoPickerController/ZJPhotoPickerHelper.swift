@@ -9,63 +9,6 @@
 import UIKit
 import Photos
 
-internal extension PHAsset {
-    private struct AssociatedKeys {
-        static var isSelectedKey    = 0
-        static var selectedOrderKey = 1
-        static var canSelectKey     = 2
-        static var cachedImageKey   = 3
-    }
-    var isSelected: Bool {
-        set {
-            objc_setAssociatedObject(self, &AssociatedKeys.isSelectedKey, newValue, .OBJC_ASSOCIATION_ASSIGN)
-        } get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.isSelectedKey) as? Bool {
-                return value
-            } else {
-                return false
-            }
-        }
-    }
-    var selectedOrder: NSNumber {
-        set {
-            objc_setAssociatedObject(self, &AssociatedKeys.selectedOrderKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        } get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.selectedOrderKey) as? NSNumber {
-                return value
-            } else {
-                return NSNumber(value: 0)
-            }
-        }
-    }
-    var canSelect: Bool {
-        set {
-            objc_setAssociatedObject(self, &AssociatedKeys.canSelectKey, newValue, .OBJC_ASSOCIATION_ASSIGN)
-        } get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.canSelectKey) as? Bool {
-                return value
-            } else {
-                return true
-            }
-        }
-    }
-    var cachedImage: UIImage? {
-        set {
-            objc_setAssociatedObject(self, &AssociatedKeys.cachedImageKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-        } get {
-            if let value = objc_getAssociatedObject(self, &AssociatedKeys.cachedImageKey) as? UIImage {
-                return value
-            } else {
-                return nil
-            }
-        }
-    }
-    
-    func isSame(to other: PHAsset) -> Bool {
-        return localIdentifier == other.localIdentifier
-    }
-}
-
 open class ZJPhotoPickerConfiguration {
     static var `default` : ZJPhotoPickerConfiguration {
         return ZJPhotoPickerConfiguration()
@@ -78,6 +21,20 @@ open class ZJPhotoPickerConfiguration {
     open var allowsSelectOriginalAsset: Bool = true
     /// fullScreenSize by default
     open var imageSizeOnCompletion    : CGSize = CGSize(width: UIScreen.main.bounds.width * UIScreen.main.scale, height: UIScreen.main.bounds.width * UIScreen.main.scale)
+}
+
+open class ZJAssetModel: Equatable {
+    open var phAsset      : PHAsset!
+    open var cachedImage  : UIImage?
+    open var isSelected   : Bool = false
+    open var selectedOrder: Int  = 0
+    open var canSelect    : Bool = true
+    
+    public static func ==(lhs: ZJAssetModel, rhs: ZJAssetModel) -> Bool {
+        if lhs.phAsset == nil, rhs.phAsset == nil { return true }
+        guard lhs.phAsset != nil, rhs.phAsset != nil else { return false }
+        return lhs.phAsset!.localIdentifier == rhs.phAsset!.localIdentifier
+    }
 }
 
 open class ZJAlbumModel {
@@ -94,7 +51,7 @@ open class ZJAlbumModel {
         }
     }
     open var cover: UIImage?
-    open var assets = [PHAsset]()
+    open var assets = [ZJAssetModel]()
 }
 
 open class ZJPhotoPickerHelper {
@@ -117,11 +74,13 @@ open class ZJPhotoPickerHelper {
         }
     }
     
-    open class func originalImage(for asset: PHAsset, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
-        image(for: asset, size: PHImageManagerMaximumSize, resizeMode: .exact, completion: completion)
+    @discardableResult
+    open class func originalImage(for asset: PHAsset, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) -> PHImageRequestID {
+        return image(for: asset, size: PHImageManagerMaximumSize, resizeMode: .exact, completion: completion)
     }
     
-    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, contentMode: PHImageContentMode = .aspectFill, progress: PHAssetImageProgressHandler? = nil, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) {
+    @discardableResult
+    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, contentMode: PHImageContentMode = .aspectFill, progress: PHAssetImageProgressHandler? = nil, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) -> PHImageRequestID {
         let options = PHImageRequestOptions()
         options.resizeMode             = resizeMode
         options.isSynchronous          = synchronous
@@ -129,7 +88,7 @@ open class ZJPhotoPickerHelper {
         options.progressHandler        = progress
         options.deliveryMode           = .highQualityFormat
         
-        PHCachingImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options, resultHandler: completion)
+        return PHImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options, resultHandler: completion)
     }
     
     open class func imageSize(of assets: [PHAsset], synchronous: Bool, completion: @escaping (Int) -> Void) {
@@ -209,7 +168,7 @@ open class ZJPhotoPickerHelper {
             model.firstAsset = assetResult.firstObject
         }
         
-        var assets   = [PHAsset]()
+        var assets   = [ZJAssetModel]()
         let maxCount = 99999
         var counter  = 0
         assetResult.enumerateObjects({ (asset, index, stop) in
@@ -219,7 +178,9 @@ open class ZJPhotoPickerHelper {
             if counter > maxCount {
                 stop.pointee = true
             }
-            assets.append(asset)
+            let assetModel = ZJAssetModel()
+            assetModel.phAsset = asset
+            assets.append(assetModel)
             counter += 1
         })
         model.assets = assets

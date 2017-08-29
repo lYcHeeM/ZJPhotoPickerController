@@ -11,8 +11,7 @@ import Photos
 import ZJImageBrowser
 
 class ZJPhotoPickerThumbnailController: UIViewController {
-
-    var assets = [PHAsset]() {
+    var assets = [ZJAssetModel]() {
         didSet {
             collectionView.reloadData()
         }
@@ -38,14 +37,14 @@ class ZJPhotoPickerThumbnailController: UIViewController {
     fileprivate var originalSizeCheck: UIButton!
     fileprivate var previewButton    : UIButton!
     fileprivate var maxSelectionAllowed = 9
-    fileprivate var selectedAssetsPointer  : UnsafeMutablePointer<[PHAsset]>!
+    fileprivate var selectedAssetsPointer  : UnsafeMutablePointer<[ZJAssetModel]>!
     fileprivate var sumOfImageSizePointer  : UnsafeMutablePointer<Int>!
     fileprivate var isOriginalPointer      : UnsafeMutablePointer<Bool>!
     fileprivate var isSelectionsFullPointer: UnsafeMutablePointer<Bool>!
     
     fileprivate var previewingLocatedIndexPath: IndexPath?
     
-    required init(assets: [PHAsset], selectedAssetsPointer: UnsafeMutablePointer<[PHAsset]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>, isSelectionsFullPointer: UnsafeMutablePointer<Bool>) {
+    required init(assets: [ZJAssetModel], selectedAssetsPointer: UnsafeMutablePointer<[ZJAssetModel]>, sumOfImageSizePointer: UnsafeMutablePointer<Int>, isOriginalPointer: UnsafeMutablePointer<Bool>, isSelectionsFullPointer: UnsafeMutablePointer<Bool>) {
         super.init(nibName: nil, bundle: nil)
         self.assets                  = assets
         self.selectedAssetsPointer   = selectedAssetsPointer
@@ -143,12 +142,18 @@ extension ZJPhotoPickerThumbnailController {
         previewButton.sizeToFit()
         previewButton.frame = CGRect(x: hPadding, y: (bottomBar.frame.height - previewButton.bounds.height)/2, width: previewButton.bounds.width, height: previewButton.bounds.height)
         previewButton.addTarget(self, action: #selector(previewButtonClicked), for: .touchUpInside)
+        
+        if #available(iOS 9.0, *) {
+            registerForPreviewing(with: self, sourceView: collectionView)
+        }
     }
     
     @objc private func back() {
         guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
-        naviVc.selections = selectedAssetsPointer.pointee
-        naviVc.selectionsFinished?(selectedAssetsPointer.pointee)
+        naviVc.selections = selectedAssetsPointer.pointee.map({ (model) -> PHAsset in
+            return model.phAsset
+        })
+        naviVc.selectionsFinished?(naviVc.selections)
         naviVc.popViewController(animated: true)
     }
     
@@ -158,7 +163,9 @@ extension ZJPhotoPickerThumbnailController {
     
     @objc private func doneButtonClicked() {
         guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
-        naviVc.selections = selectedAssetsPointer.pointee
+        naviVc.selections = selectedAssetsPointer.pointee.map({ (model) -> PHAsset in
+            return model.phAsset
+        })
         let hud = ZJPhotoPickerHUD.show(message: nil, inView: view, hideAfter: TimeInterval.greatestFiniteMagnitude)
         var size = naviVc.configuration.imageSizeOnCompletion
         if isOriginalPointer.pointee == true {
@@ -223,13 +230,10 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
             guard let asset = asset, let `self` = self else { return }
             self.imageButtonClicked(asset: asset)
         }
-        if #available(iOS 9.0, *) {
-            registerForPreviewing(with: self, sourceView: cell.imageButton)
-        }
         return cell
     }
     
-    fileprivate func selectButtonClicked(on cell: ZJPhotoPickerThumbnailCell, asset: PHAsset) {
+    fileprivate func selectButtonClicked(on cell: ZJPhotoPickerThumbnailCell, asset: ZJAssetModel) {
         var selectionChanged         = false
         var selectionsJustUnFull     = false
         var selectionDeletedAtMiddle = false
@@ -238,8 +242,8 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                 asset.isSelected = true
                 if !self.selectedAssetsPointer.pointee.contains(asset) { // 防止重复添加
                     self.selectedAssetsPointer.pointee.append(asset)
-                    asset.selectedOrder = NSNumber(value: self.selectedAssetsPointer.pointee.count)
-                    ZJPhotoPickerHelper.imageSize(of: [asset], synchronous: true, completion: { (size) in
+                    asset.selectedOrder = self.selectedAssetsPointer.pointee.count
+                    ZJPhotoPickerHelper.imageSize(of: [asset.phAsset], synchronous: true, completion: { (size) in
                         self.sumOfImageSizePointer.pointee += size
                     })
                     selectionChanged = true
@@ -273,11 +277,11 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                     selectionDeletedAtMiddle = true
                     let startIndex = index
                     for _ in startIndex..<self.selectedAssetsPointer.pointee.count {
-                        self.selectedAssetsPointer.pointee[index].selectedOrder = NSNumber(value: index + 1)
+                        self.selectedAssetsPointer.pointee[index].selectedOrder = index + 1
                         index += 1
                     }
                 }
-                ZJPhotoPickerHelper.imageSize(of: [asset], synchronous: true, completion: { (size) in
+                ZJPhotoPickerHelper.imageSize(of: [asset.phAsset], synchronous: true, completion: { (size) in
                     self.sumOfImageSizePointer.pointee -= size
                     if self.sumOfImageSizePointer.pointee <= 0 {
                         self.sumOfImageSizePointer.pointee = 0
@@ -291,7 +295,9 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
         guard selectionChanged else { return }
         self.refreshBottomBar()
         guard let naviVc = self.navigationController as? ZJPhotoPickerController else { return }
-        naviVc.selections = self.selectedAssetsPointer.pointee
+        naviVc.selections = self.selectedAssetsPointer.pointee.map({ (model) -> PHAsset in
+            return model.phAsset
+        })
         naviVc.selectionsChanged?(naviVc.selections)
         
         if selectionDeletedAtMiddle {
@@ -306,19 +312,19 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
         }
     }
     
-    fileprivate func imageButtonClicked(asset: PHAsset, showBrowserAnimated: Bool = true) {
+    fileprivate func imageButtonClicked(asset: ZJAssetModel, showBrowserAnimated: Bool = true) {
         var imageWrappers  = [ZJImageWrapper]()
         var needsPageIndex = false
         var initialIndex   = 0
         if self.selectedAssetsPointer.pointee.contains(asset) {
             for asset in selectedAssetsPointer.pointee {
-                let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset, shouldDownloadImage: false, placeholderImage: asset.cachedImage, imageContainer: nil)
+                let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset.phAsset, shouldDownloadImage: false, placeholderImage: asset.cachedImage, imageContainer: nil)
                 imageWrappers.append(wrapper)
             }
-            initialIndex = asset.selectedOrder.intValue - 1
+            initialIndex = asset.selectedOrder - 1
             needsPageIndex = true
         } else {
-            let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset, shouldDownloadImage: false, placeholderImage: asset.cachedImage, imageContainer: nil)
+            let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset.phAsset, shouldDownloadImage: false, placeholderImage: asset.cachedImage, imageContainer: nil)
             imageWrappers = [wrapper]
         }
         let browser = ZJImageBrowser(imageWrappers: imageWrappers, initialIndex: initialIndex)
@@ -339,10 +345,11 @@ extension ZJPhotoPickerThumbnailController: UIViewControllerPreviewingDelegate {
             else { return nil }
         previewingLocatedIndexPath = indexPath
         var placeholder: UIImage? = nil
-        ZJPhotoPickerHelper.image(for: asset, synchronous: true, size: CGSize(width: 200, height: 200), resizeMode: .fast, completion: { (image, info) in
+        ZJPhotoPickerHelper.image(for: asset.phAsset, synchronous: true, size: CGSize(width: 200, height: 200), resizeMode: .fast, completion: { (image, info) in
             placeholder = image
         })
-        let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset, shouldDownloadImage: false, placeholderImage: placeholder, imageContainer: nil)
+        previewingContext.sourceRect = cell.frame
+        let wrapper = ZJImageWrapper(highQualityImageUrl: nil, asset: asset.phAsset, shouldDownloadImage: false, placeholderImage: placeholder, imageContainer: nil)
         let target = ZJImageBrowserPreviewingController(imageWrapper: wrapper)
         target.preferredContentSize = target.supposedContentSize(with: placeholder)
         target.needsSaveAction = false
@@ -364,20 +371,27 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
     static let reuseIdentifier = "ZJPhotoPickerThumbnailCell"
     fileprivate var imageButton  = UIButton()
     fileprivate var selectButton = PAPohtoPickerSelectButton()
+    fileprivate var assetId: String!
+    fileprivate var imageRequestId: PHImageRequestID?
     
     var showsSelectedOrder : Bool = true
-    var imageButtonClicked : ((PHAsset?) -> Void)?
-    var selectButtonClicked: ((PHAsset?) -> Void)?
+    var imageButtonClicked : ((ZJAssetModel?) -> Void)?
+    var selectButtonClicked: ((ZJAssetModel?) -> Void)?
     
-    var asset: PHAsset? {
+    var asset: ZJAssetModel? {
         didSet {
             guard let asset = asset else { return }
+            assetId = asset.phAsset.localIdentifier
             var imageSize = imageButton.bounds.size
             if imageSize.width < 240 {
                 imageSize = CGSize(width: 240, height: 240)
             }
             if asset.cachedImage == nil {
-                ZJPhotoPickerHelper.image(for: asset, size: imageSize, resizeMode: .exact) { (image, _) in
+                if let imageRequestId = imageRequestId, imageRequestId != PHInvalidImageRequestID {
+                    PHImageManager.default().cancelImageRequest(imageRequestId)
+                }
+                imageRequestId = ZJPhotoPickerHelper.image(for: asset.phAsset, size: imageSize, resizeMode: .exact) { (image, _) in
+                    guard self.assetId == asset.phAsset.localIdentifier else { return }
                     self.imageButton.setImage(image, for: .normal)
                     asset.cachedImage = image
                 }
@@ -408,12 +422,12 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func refreshButton(with asset: PHAsset, animated: Bool = true) {
+    func refreshButton(with asset: ZJAssetModel, animated: Bool = true) {
         selectButton.isSelected = asset.isSelected
         if showsSelectedOrder {
-            if asset.selectedOrder.intValue > 0 {
+            if asset.selectedOrder > 0 {
                 selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_order"), for: .selected)
-                selectButton.setTitle("\(asset.selectedOrder.intValue)", for: .selected)
+                selectButton.setTitle("\(asset.selectedOrder)", for: .selected)
             } else {
                 selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
                 selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
