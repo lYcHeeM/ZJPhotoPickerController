@@ -143,6 +143,10 @@ extension ZJPhotoPickerThumbnailController {
         previewButton.frame = CGRect(x: hPadding, y: (bottomBar.frame.height - previewButton.bounds.height)/2, width: previewButton.bounds.width, height: previewButton.bounds.height)
         previewButton.addTarget(self, action: #selector(previewButtonClicked), for: .touchUpInside)
         
+        // Realized memory increases infinitely when scrolling UICollectionView, I fixed it by using an alternative way to register 3D Touch previewing. (Calling 'registerForPreviewing' method frequently will increase memory occupation significantly and permanently!)
+        // It is best to call this method as few as possible.
+        // 重复调用"registerForPreviewing"方法会显著地增加app的内存占用, 而且无法得到释放, 即使进入后台模式也是如此.
+        // 好的做法是尽可能少地注册, 比如给根视图注册, 通过设置UIViewControllerPreviewing的sourceRect来控制当3dtouch触发时根视图中需要突出显示的区域, 比如某个cell.
         if #available(iOS 9.0, *) {
             registerForPreviewing(with: self, sourceView: collectionView)
         }
@@ -237,6 +241,7 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
         var selectionChanged         = false
         var selectionsJustUnFull     = false
         var selectionDeletedAtMiddle = false
+        asset.selectAnimated         = true
         if !asset.isSelected {
             if self.selectedAssetsPointer.pointee.count < self.maxSelectionAllowed {
                 asset.isSelected = true
@@ -255,9 +260,12 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                             }
                         }
                         collectionView.reloadData()
+                        // 使reloadData同步完成
+                        collectionView.layoutIfNeeded()
                     } else {
                         cell.refreshButton(with: asset, animated: true)
                     }
+                    asset.selectAnimated = false
                 }
             } else {
                 let alert = UIAlertController(title: nil, message: "您最多只能一次性选择\(self.maxSelectionAllowed)张照片", preferredStyle: .alert)
@@ -290,6 +298,7 @@ extension ZJPhotoPickerThumbnailController: UICollectionViewDelegate, UICollecti
                 cell.refreshButton(with: asset)
                 selectionChanged = true
             }
+            asset.selectAnimated = true
         }
         
         guard selectionChanged else { return }
@@ -398,7 +407,7 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
             } else {
                 imageButton.setImage(asset.cachedImage, for: .normal)
             }
-            refreshButton(with: asset, animated: false)
+            refreshButton(with: asset, animated: asset.selectAnimated)
         }
     }
     

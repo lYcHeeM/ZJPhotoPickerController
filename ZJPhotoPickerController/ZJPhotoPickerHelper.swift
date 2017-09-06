@@ -24,11 +24,12 @@ open class ZJPhotoPickerConfiguration {
 }
 
 open class ZJAssetModel: Equatable {
-    open var phAsset      : PHAsset!
-    open var cachedImage  : UIImage?
-    open var isSelected   : Bool = false
-    open var selectedOrder: Int  = 0
-    open var canSelect    : Bool = true
+    open var phAsset       : PHAsset!
+    open var cachedImage   : UIImage?
+    open var isSelected    : Bool = false
+    open var selectAnimated: Bool = true
+    open var selectedOrder : Int  = 0
+    open var canSelect     : Bool = true
     
     public static func ==(lhs: ZJAssetModel, rhs: ZJAssetModel) -> Bool {
         if lhs.phAsset == nil, rhs.phAsset == nil { return true }
