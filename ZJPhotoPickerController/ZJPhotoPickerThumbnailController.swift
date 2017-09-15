@@ -111,21 +111,20 @@ extension ZJPhotoPickerThumbnailController {
         bottomBar.frame = CGRect(x: 0, y: view.frame.height - bottomBarHeight, width: view.frame.width, height: bottomBarHeight)
         
         doneButton = UIButton()
-        bottomBar.addSubview(doneButton)
         doneButton.titleLabel?.font = UIFont.systemFont(ofSize: 13)
         let bgImage = UIImage(color: UIColor.deepOrange)?.stretchable
         let disableImage = UIImage(color: UIColor.gray)?.stretchable
         doneButton.setBackgroundImage(bgImage, for: .normal)
         doneButton.setBackgroundImage(disableImage, for: .disabled)
         doneButton.setTitleColor(.white, for: .normal)
-        doneButton.frame = CGRect(x: view.frame.width - hPadding - doneButtonWidth, y: vPadding, width: doneButtonWidth, height: doneButtonHeight)
+        doneButton.frame.size = CGSize(width: doneButtonWidth, height: doneButtonHeight)
         doneButton.layer.masksToBounds = true
         doneButton.layer.cornerRadius  = 3
         doneButton.layer.backgroundColor = UIColor.green.cgColor
         doneButton.addTarget(self, action: #selector(doneButtonClicked), for: .touchUpInside)
+        let doneItem = UIBarButtonItem(customView: doneButton)
         
         originalSizeCheck = UIButton()
-        bottomBar.addSubview(originalSizeCheck)
         originalSizeCheck.titleLabel?.font = UIFont.systemFont(ofSize: 14)
         originalSizeCheck.setTitle(" 原图 ", for: .normal)
         originalSizeCheck.setImage(#imageLiteral(resourceName: "btn_unselected_round"), for: .normal)
@@ -133,6 +132,7 @@ extension ZJPhotoPickerThumbnailController {
         originalSizeCheck.setImage(#imageLiteral(resourceName: "btn_unselected_round"), for: .disabled)
         originalSizeCheck.sizeToFit()
         originalSizeCheck.addTarget(self, action: #selector(originalSizeChecked), for: .touchUpInside)
+        let sizeCheckItem = UIBarButtonItem(customView: originalSizeCheck)
         
         previewButton = UIButton(type: .system)
         bottomBar.addSubview(previewButton)
@@ -142,6 +142,16 @@ extension ZJPhotoPickerThumbnailController {
         previewButton.sizeToFit()
         previewButton.frame = CGRect(x: hPadding, y: (bottomBar.frame.height - previewButton.bounds.height)/2, width: previewButton.bounds.width, height: previewButton.bounds.height)
         previewButton.addTarget(self, action: #selector(previewButtonClicked), for: .touchUpInside)
+        let previewItem = UIBarButtonItem(customView: previewButton)
+        
+        // Tag 给toolBar设置item, 避免直接把子视图加在toolBar上, iOS 11 便会出问题, 但如果设置item的话, Apple会保证Api的toolBar本地的api的有效性.
+        let flexibleItem1 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let flexibleItem2 = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let leftSpaceItem = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        let rightSpaceItem = UIBarButtonItem(barButtonSystemItem: .fixedSpace, target: nil, action: nil)
+        leftSpaceItem.width = -5
+        rightSpaceItem.width = -5
+        bottomBar.items = [leftSpaceItem, previewItem, flexibleItem1, sizeCheckItem, flexibleItem2, doneItem, rightSpaceItem]
         
         // Realized memory increases infinitely when scrolling UICollectionView, I fixed it by using an alternative way to register 3D Touch previewing. (Calling 'registerForPreviewing' method frequently will increase memory occupation significantly and permanently!)
         // It is best to call this method as few as possible.

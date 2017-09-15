@@ -141,6 +141,11 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
         self.albumModels = albumModels
     }
     
+    // 不知为何, ios8.4下 必须实现这个方法
+    override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nil, bundle: nil)
+    }
+    
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
