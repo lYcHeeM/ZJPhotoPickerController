@@ -26,7 +26,7 @@ open class ZJPhotoPickerController: UINavigationController {
     open var willDismissWhenDoneBtnClicked: (([UIImage], [PHAsset]) -> Void)?
     open var didDismissWhenDoneBtnClicked : (([UIImage], [PHAsset]) -> Void)?
     
-    public required init(albumModels: [ZJAlbumModel] = [], configuration: ZJPhotoPickerConfiguration = ZJPhotoPickerConfiguration()) {
+    public required init(albumModels: [ZJAlbumModel] = [], configuration: ZJPhotoPickerConfiguration = .default) {
         let rootVc = ZJPhotoPickerAlbumListController(albumModels: albumModels)
         super.init(nibName: nil, bundle: nil)
         self.pushViewController(rootVc, animated: false)
@@ -41,8 +41,7 @@ open class ZJPhotoPickerController: UINavigationController {
     
     open override func viewDidLoad() {
         super.viewDidLoad()
-        navigationBar.barStyle  = .black
-        navigationBar.tintColor = .white
+        ZJPhotoPickerHelper.adjustNaviBarStyle()
         interactivePopGestureRecognizer?.delegate = nil
     }
     
@@ -160,6 +159,7 @@ class ZJPhotoPickerAlbumListController: UITableViewController {
     }
     
     @objc private func dismissNav() {
+        ZJPhotoPickerHelper.resumeNaviBarStyle()
         navigationController?.dismiss(animated: true, completion: nil)
     }
     

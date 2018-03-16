@@ -33,6 +33,7 @@ open class ZJPhotoPickerConfiguration {
     static var `default` : ZJPhotoPickerConfiguration {
         return ZJPhotoPickerConfiguration()
     }
+    static var thumbnialImageSize = CGSize(width: 240, height: 240)
     open var maxSelectionAllowed      : Int  = 9
     open var assetsSortAscending      : Bool = true
     open var showsSelectedOrder       : Bool = true
@@ -76,13 +77,14 @@ open class ZJAlbumModel {
 }
 
 open class ZJPhotoPickerHelper {
+    fileprivate static var originalNaviBarAppearance = ZJNavigationBarStyle()
     
     /// 如果要获取原图, size参数传PHImageManagerMaximumSize即可.
-    open class func images(for assets: [PHAsset], size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, completion: @escaping ([UIImage]) -> Void) {
+    open class func images(for assets: [PHAsset], size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, deliveryMode: PHImageRequestOptionsDeliveryMode = .highQualityFormat, completion: @escaping ([UIImage]) -> Void) {
         var result = [UIImage]()
         DispatchQueue.global().async {
             for asset in assets {
-                self.image(for: asset, synchronous: true, size: size, resizeMode: resizeMode, completion: { (image, _) in
+                self.image(for: asset, synchronous: true, size: size, resizeMode: resizeMode, deliveryMode: deliveryMode, completion: { (image, _) in
                     if let image = image {
                         result.append(image)
                     }
@@ -101,15 +103,54 @@ open class ZJPhotoPickerHelper {
     }
     
     @discardableResult
-    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, contentMode: PHImageContentMode = .aspectFill, progress: PHAssetImageProgressHandler? = nil, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) -> PHImageRequestID {
+    open class func image(for asset: PHAsset, synchronous: Bool = false, size: CGSize, resizeMode: PHImageRequestOptionsResizeMode = .none, contentMode: PHImageContentMode = .aspectFill, deliveryMode: PHImageRequestOptionsDeliveryMode = .highQualityFormat, progress: PHAssetImageProgressHandler? = nil, completion: @escaping (UIImage?, [AnyHashable: Any]?) -> Void) -> PHImageRequestID {
         let options = PHImageRequestOptions()
         options.resizeMode             = resizeMode
         options.isSynchronous          = synchronous
         options.isNetworkAccessAllowed = true
         options.progressHandler        = progress
-        options.deliveryMode           = .highQualityFormat
+        options.deliveryMode           = deliveryMode
         
-        return PHImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options, resultHandler: completion)
+        // 考虑到图片存储在iCloud的情况，实践发现此时用PHCachingImageManager获取到的image很可能为nil，
+        // 故下面约定，如果是异步请求，一旦发现PHCachingImageManager给的回调中image为nil，则请求低质量的图片（requestDegradedImage）
+        let requestDegradedImage = {
+            options.deliveryMode = .fastFormat
+            options.resizeMode = .fast
+            PHCachingImageManager.default().requestImage(for: asset, targetSize: ZJPhotoPickerConfiguration.thumbnialImageSize, contentMode: contentMode, options: options, resultHandler: { (image, info) in
+                completion(image, info)
+            })
+        }
+        
+        // 标识是否进入了PHCachingImageManager的completion
+        var metCompletion = false
+        // 标识默认的回调是否执行，默认的回调即为上面的`requestDegradedImage`
+        var defaultCompletionCalled = false
+        if synchronous {
+            // 如果同步获取图片，则开一个定时器，1.5秒后，
+            // 如果PHCachingImageManager还没有给我们回调，则放弃之，改获取缺省的低质量的(Degraded)图片
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                guard metCompletion == false else { return }
+                defaultCompletionCalled = true
+                requestDegradedImage()
+            }
+        }
+        
+        return PHCachingImageManager.default().requestImage(for: asset, targetSize: size, contentMode: contentMode, options: options) { image, info in
+            guard defaultCompletionCalled == false else { return }
+            metCompletion = true
+            if image == nil {
+                requestDegradedImage()
+            }
+            
+            // 如果发现有错误，并且图片在iCloud中，则尝试以全屏尺寸再获取一遍
+            if let _ = info?[PHImageErrorKey] as? NSError, let isIniCloud = info?[PHImageResultIsInCloudKey] as? Bool, isIniCloud {
+                let fullScreenSize = UIScreen.main.bounds.size.width * UIScreen.main.scale
+                PHCachingImageManager.default().requestImage(for: asset, targetSize: CGSize(width: fullScreenSize, height: fullScreenSize), contentMode: contentMode, options: options, resultHandler: completion)
+                return
+            }
+            
+            completion(image, info)
+        }
     }
     
     open class func imageSize(of assets: [PHAsset], synchronous: Bool, completion: @escaping (Int) -> Void) {
@@ -118,7 +159,7 @@ open class ZJPhotoPickerHelper {
         var size  = 0
         var index = 0
         for asset in assets {
-            PHImageManager.default().requestImageData(for: asset, options: options, resultHandler: { (data, dataUTI, orientation, info) in
+            PHCachingImageManager.default().requestImageData(for: asset, options: options, resultHandler: { (data, dataUTI, orientation, info) in
                 index += 1
                 size  += data?.count ?? 0
                 if index >= assets.count {
@@ -206,6 +247,41 @@ open class ZJPhotoPickerHelper {
         })
         model.assets = assets
         return model
+    }
+}
+
+class ZJNavigationBarStyle {
+    var tintColor: UIColor?
+    var barTintColor: UIColor?
+    var barStyle = UIBarStyle.default
+    var titleAttributes: [String: Any]?
+    var normalItemTitleAttributes: [String: Any]?
+    var highlightedTitleAttributes: [String: Any]?
+}
+
+/// 用于设置和还原导航栏样式，考虑到这样的需求：App有自己的导航栏样式，有可能屏蔽了blur效果，但
+/// ZJPhotoPicker却想开启blur效果，所以需要暂时更改导航栏样式，在ZJPhotoPicker退出的时候，
+/// 则需要恢复原来的导航栏样式。
+extension ZJPhotoPickerHelper {
+    static func adjustNaviBarStyle() {
+        let style       = UINavigationBar.appearance()
+        originalNaviBarAppearance.tintColor    = style.tintColor
+        originalNaviBarAppearance.barTintColor = style.barTintColor
+        originalNaviBarAppearance.barStyle     = style.barStyle
+        originalNaviBarAppearance.titleAttributes = style.titleTextAttributes
+        originalNaviBarAppearance.normalItemTitleAttributes = UIBarButtonItem.appearance().titleTextAttributes(for: .normal)
+        originalNaviBarAppearance.highlightedTitleAttributes = UIBarButtonItem.appearance().titleTextAttributes(for: .highlighted)
+        
+        style.barTintColor = nil
+        style.tintColor = .white
+        style.barStyle = .black
+        style.titleTextAttributes = [NSForegroundColorAttributeName: UIColor.white, NSFontAttributeName: UIFont.boldSystemFont(ofSize: 17)]
+    }
+    
+    static func resumeNaviBarStyle() {
+        let style = UINavigationBar.appearance()
+        style.barTintColor = originalNaviBarAppearance.barTintColor
+        style.titleTextAttributes = originalNaviBarAppearance.titleAttributes
     }
 }
 

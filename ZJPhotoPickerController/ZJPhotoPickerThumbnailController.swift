@@ -142,7 +142,6 @@ extension ZJPhotoPickerThumbnailController {
         let sizeCheckItem = UIBarButtonItem(customView: originalSizeCheck)
         
         previewButton = UIButton(type: .system)
-        bottomBar.addSubview(previewButton)
         previewButton.tintColor = .white
         previewButton.titleLabel?.font = UIFont.systemFont(ofSize: 14)
         previewButton.setTitle("预览", for: .normal)
@@ -179,10 +178,12 @@ extension ZJPhotoPickerThumbnailController {
     }
     
     @objc private func dismissNav() {
+        ZJPhotoPickerHelper.resumeNaviBarStyle()
         navigationController?.dismiss(animated: true, completion: nil)
     }
     
     @objc private func doneButtonClicked() {
+        ZJPhotoPickerHelper.resumeNaviBarStyle()
         guard let naviVc = navigationController as? ZJPhotoPickerController else { return }
         naviVc.selections = selectedAssetsPointer.pointee.map({ (model) -> PHAsset in
             return model.phAsset
@@ -192,7 +193,7 @@ extension ZJPhotoPickerThumbnailController {
         if isOriginalPointer.pointee == true {
             size = PHImageManagerMaximumSize
         }
-        ZJPhotoPickerHelper.images(for: naviVc.selections, size: size, resizeMode: .fast) { (images) in
+        ZJPhotoPickerHelper.images(for: naviVc.selections, size: size, resizeMode: .fast, deliveryMode: .opportunistic) { (images) in
             hud?.hide(animated: false)
             naviVc.willDismissWhenDoneBtnClicked?(images, naviVc.selections)
             naviVc.dismiss(animated: true) {
@@ -409,8 +410,8 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
             guard let asset = asset else { return }
             assetId = asset.phAsset.localIdentifier
             var imageSize = imageButton.bounds.size
-            if imageSize.width < 240 {
-                imageSize = CGSize(width: 240, height: 240)
+            if imageSize.width < ZJPhotoPickerConfiguration.thumbnialImageSize.width {
+                imageSize = ZJPhotoPickerConfiguration.thumbnialImageSize
             }
             if asset.cachedImage == nil {
                 if let imageRequestId = imageRequestId, imageRequestId != PHInvalidImageRequestID {
@@ -462,7 +463,7 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
             selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_unselected"), for: .normal)
             selectButton.setBackgroundImage(#imageLiteral(resourceName: "btn_selected"), for: .selected)
         }
-        // 实践发现给大量button(似乎是15个以上)的enabled置为false, 会有很大的图形性能损耗, 首先从刷新colletionView开始直到对应button的外观变为enabled为false的外观, 大概用了1秒; 其次, 滑动collectionView会有很大的帧率丢失, 从之前的60帧变为35帧左右.
+        // Tag: 实践发现给大量button(似乎是15个以上)的enabled置为false, 会有很大的图形性能损耗, 首先从刷新colletionView开始直到对应button的外观变为enabled为false的外观, 大概用了1秒; 其次, 滑动collectionView会有很大的帧率丢失, 从之前的60帧变为35帧左右.
 //        imageButton.isEnabled = asset.canSelect
         // 故改为控制isUserInteractionEnabled和alpha.
         if asset.canSelect {
@@ -478,8 +479,8 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
     override func layoutSubviews() {
         super.layoutSubviews()
         imageButton.frame = bounds
-        let padding: CGFloat = 3
-        let buttonSize: CGFloat = 20
+        let padding: CGFloat = 1.5
+        let buttonSize: CGFloat = 25
         selectButton.frame = CGRect(x: frame.width - buttonSize - padding, y: frame.height - buttonSize - padding, width: buttonSize, height: buttonSize)
     }
     
@@ -493,7 +494,7 @@ class ZJPhotoPickerThumbnailCell: UICollectionViewCell {
     
     private var selectionAnimation: CAKeyframeAnimation {
         let animation = CAKeyframeAnimation(keyPath: "transform")
-        animation.duration = 0.25
+        animation.duration = 0.15
         animation.isRemovedOnCompletion = true
         animation.fillMode = kCAFillModeForwards
         animation.keyTimes = [
