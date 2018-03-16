@@ -102,13 +102,20 @@ extension ZJPhotoPickerThumbnailController {
         collectionView.dataSource = self
         collectionView.delegate   = self
         collectionView.scrollToItem(at: IndexPath(item: assets.count - 1, section: 0), at: .bottom, animated: false)
-        collectionView.contentOffset.y += 64
+        collectionView.contentOffset.y += topBarHeight
         view.addSubview(collectionView)
         
         let bottomBar = UIToolbar()
         view.addSubview(bottomBar)
         bottomBar.barStyle = .black
-        bottomBar.frame = CGRect(x: 0, y: view.frame.height - bottomBarHeight, width: view.frame.width, height: bottomBarHeight)
+        bottomBar.frame = CGRect(x: 0, y: view.frame.height - bottomBarHeight - bottomAreaHeight, width: view.frame.width, height: bottomBarHeight)
+        if isIPHONE_X {
+            let bottomAreaBgView = UIToolbar()
+            bottomAreaBgView.barStyle = .black
+            bottomAreaBgView.clipsToBounds = true
+            view.addSubview(bottomAreaBgView)
+            bottomAreaBgView.frame = CGRect(x: 0, y: bottomBar.frame.maxY, width: view.frame.width, height: bottomAreaHeight)
+        }
         
         doneButton = UIButton()
         doneButton.titleLabel?.font = UIFont.systemFont(ofSize: 13)

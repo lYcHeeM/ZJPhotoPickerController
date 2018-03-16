@@ -9,6 +9,26 @@
 import UIKit
 import Photos
 
+internal var isIPHONE_X: Bool {
+    return UIScreen.instancesRespond(to: #selector(getter: UIDynamicItem.bounds)) ? CGSize(width: 375, height: 812).equalTo(UIScreen.main.bounds.size) : false
+}
+
+internal var topBarHeight: CGFloat {
+    if isIPHONE_X {
+        return 88
+    } else {
+        return 64
+    }
+}
+
+internal var bottomAreaHeight: CGFloat {
+    if isIPHONE_X {
+        return 34
+    } else {
+        return 0
+    }
+}
+
 open class ZJPhotoPickerConfiguration {
     static var `default` : ZJPhotoPickerConfiguration {
         return ZJPhotoPickerConfiguration()

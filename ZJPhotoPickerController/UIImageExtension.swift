@@ -31,6 +31,6 @@ internal extension UIImage {
 
 public extension UIColor {
     public class var deepOrange: UIColor {
-        return UIColor(colorLiteralRed: 255/255, green: 102/255, blue: 2/255, alpha: 1.0)
+        return UIColor(colorLiteralRed: 255/255.0, green: 102/255.0, blue: 2/255.0, alpha: 1.0)
     }
 }
